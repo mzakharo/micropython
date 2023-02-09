@@ -40,11 +40,11 @@ MQTT_DUMMY = False
 
 #disable lightsleep to allow prints
 DISABLE_LIGHTSLEEP = False
-DISABLE_LIGHTSLEEP = True
+#DISABLE_LIGHTSLEEP = True
 
 #disable deep sleep
 DISABLE_DEEPSLEEP = False
-DISABLE_DEEPSLEEP = True
+#DISABLE_DEEPSLEEP = True
 
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
