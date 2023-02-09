@@ -1,10 +1,11 @@
 import utime as time
 import ujson as json
 import uos
+import io
 from machine import WDT, deepsleep, lightsleep
-from feathers2 import set_ldo2_power, set_led
+from feathers2 import set_ldo2_power, set_led, AMB_LIGHT
 from umqtt.robust import MQTTClient
-from machine import ADC, Pin
+from machine import ADC, Pin, reset
 import network
 
 from esp32 import Partition
@@ -16,15 +17,15 @@ for p in Partition.find(Partition.TYPE_APP):
     print(p)
 print("active partition:", Partition(Partition.RUNNING).info()[4])
 
+uversion = uos.uname().version
+print('FW version: ', uversion)
+
 class FakeWDT:
     def __init__(self, timeout):pass
     def feed(self): pass
 
 #wdt = WDT(timeout=70000)
 wdt = FakeWDT(timeout=70000)
-
-import webrepl
-webrepl.start(password='admin')
 
 PROFILING=False
 PROFILING=True
@@ -45,11 +46,11 @@ MQTT_DUMMY = False
 
 #disable lightsleep to allow prints
 DISABLE_LIGHTSLEEP = False
-#DISABLE_LIGHTSLEEP = True
+DISABLE_LIGHTSLEEP = True
 
 #disable deep sleep
 DISABLE_DEEPSLEEP = False
-#DISABLE_DEEPSLEEP = True
+DISABLE_DEEPSLEEP = True
 
 SLEEP_FAST = 60_000
 
@@ -86,7 +87,7 @@ def median(v):
 def my_go_deepsleep(duration):
     Pin(ORP_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
     Pin(BAT_PIN, Pin.IN, Pin.PULL_UP, hold=True)
-    #Pin(LDO2, Pin.IN, pull=Pin.PULL_HOLD | Pin.PULL_DOWN)
+    #Pin(AMB_LIGHT, Pin.IN, Pin.PULL_UP, hold=True)
     deepsleep(duration)
     #from feathers2 import go_deepsleep
     #go_deepsleep(duration)
@@ -137,141 +138,72 @@ while True:
     wdt.feed()
 '''
 
+client = MQTTClient(client_id=uid, server=MQTT_SERVER)
+
+class State:
+    def __init__(self):
+        self.prevent_sleep = False
+        self.subscribe_ota = False
+        self.measured = False
+        self.check_sha = b''
+        self.check = {}
+        try:
+            with open('check_sha.txt', 'r') as f:
+                self.check = json.loads(f.read())
+        except Exception as e:
+            print('check err', e)
+
+
+
+s = State()
+
 def on_message(topic, msg):
-    print('received', topic, msg)
+    print('received', topic, msg[:100])
+    if topic == b'tubby/ota/cmd':
+        if msg == b'webrepl':
+            print('enabling webrepl')
+            import webrepl
+            webrepl.start(password='admin')
+            s.prevent_sleep = True
+        else:
+            sha = msg.decode()
+            part = Partition(Partition.RUNNING).info()[4]
+            my_sha = s.check.get('sha', '')
+            my_part = s.check.get('part', '')
+
+            if my_sha == sha and my_part == part:
+                print('OTA skip: already running this image')
+                return
+
+            print(f'OTA Queue: my_sha: {my_sha}, sha: {sha} my_part: {my_part} part: {part}')
+            s.prevent_sleep = True
+            s.subscribe_ota = True
+            s.check_sha = sha
+
+    elif topic == b'tubby/ota/fw':
+        print('OTA write: fw len:', len(msg))
+        s.prevent_sleep = False
+        from ota import OTA
+        fw = io.BytesIO(msg)
+        ot = OTA(fw, 0, check_sha=s.check_sha, tls=True)
+        BLOCKLEN = 4096
+        n_blocks = (len(msg) // BLOCKLEN) + 1
+        ot.do_ota(blocks=n_blocks, debug=True)
+        ot.check_ota()
+        with open('check_sha.txt', 'w') as f:
+            f.write(json.dumps({'sha': s.check_sha, 'part' :  Partition(Partition.BOOT).info()[4]}))
+        print('Rebooting device...')
+        time.sleep(1)
+        reset()
+
 
 def mqtt():
     wifi()
     #print('network config:', wlan.ifconfig())
-    client = MQTTClient(client_id=uid, server=MQTT_SERVER)
     client.set_callback(on_message)
     client.connect()
-    client.subscribe('tubby/ota_mode')
+    client.subscribe('tubby/ota/cmd')
     return client
-
-
-def measure(cnt):
-    client = mqtt()
-    set_ldo2_power(True)
-    for _ in range(cnt):
-        tic = time.ticks_ms()
-        orp = o.read() - 1500
-        #vbat = b.read() * 2
-        status = dict(orp=float(orp))
-        print(status)
-        client.publish("feather/status", json.dumps(status), qos=0)
-        wdt.feed()
-        toc = time.ticks_ms()
-        diff = time.ticks_diff(toc, tic)
-        slp = 100 - diff
-        if slp > 0:
-            time.sleep_ms(slp)
-        else:
-            print('diff', diff)
-    set_ldo2_power(False)
-    client.disconnect()
-
-def measure2(cnt):
-    client = mqtt()
-    set_ldo2_power(True)
-    prev = -2000
-    vs = []
-    bcnt = 0
-    orp_c_sent = False
-    for i in range(cnt):
-        tic = time.ticks_ms()
-        v = o.read() - 1500
-        wdt.feed()
-        if prev is None:
-            prev = v
-        vs.append(v)
-        if i % 50 == 0:
-            mvs = median(vs)
-
-            orp_c = None
-            vs.clear()
-            change = abs(mvs - prev)
-            prev = mvs
-            if (change <= 4):
-                bcnt += 1
-                if bcnt >= 2:
-                    print(i, mvs, change,  'bcnt', bcnt, 'break')
-                    orp_c = mvs
-                else:
-                    print(i, mvs, change,  'bcnt', bcnt)
-            else:
-                bcnt = 0
-                print(i, mvs, change)
-            orp = mvs
-            status = dict(orp=float(orp))
-            if i == 450:
-                status['orp_static'] = orp
-            if orp_c is not None and not orp_c_sent:
-                orp_c_sent = True
-                status['orp_c'] = orp_c
-                status['orp_i'] = i
-            client.publish("feather/status", json.dumps(status), qos=0)
-        toc = time.ticks_ms()
-        diff = time.ticks_diff(toc, tic)
-        slp = 100 - diff
-        if slp > 0:
-            time.sleep_ms(slp)
-        else:
-            print('diff', diff)
-    set_ldo2_power(False)
-    client.disconnect()
-
-def measure3():
-    client = mqtt()
-    N = 15
-    set_ldo2_power(True)
-    prev = -10000
-    for i in range(N):
-        tic = time.ticks_ms()
-        wdt.feed()
-        orps = [o.read() for _ in range(100)]
-        orp = median(orps) - 1500
-        d = orp - prev
-        prev = orp
-        status = dict(orp=float(orp))
-        if i == N-1:
-            status['orp_final'] = float(orp)
-        print(i, status, 'delta', d)
-        client.publish("feather/status", json.dumps(status), qos=1)
-        toc = time.ticks_ms()
-        diff = time.ticks_diff(toc, tic)
-        slp = 1000 - diff
-        if slp > 0:
-            time.sleep_ms(slp)
-        else:
-            print('diff', diff)
-    set_ldo2_power(False)
-    client.disconnect()
-
-
-def measure4():
-    status = {}
-    set_ldo2_power(True)
-    s = time.ticks_ms()
-    slept = 0
-    for i in [2, 15, 30, 45, 60]:
-        to_sleep = i * 1000 - slept
-        wdt.feed()
-        my_sleep_ms(to_sleep)
-        slept += to_sleep
-
-        orp = o.read() - 1500
-        status[f'orp{i}'] = orp
-        diff = time.ticks_diff(time.ticks_ms(), s)
-        #status[f'i_orp{i}'] = diff
-        print(i, diff, orp)
-        
-    set_ldo2_power(False)
-
-    #get battery voltage
-    vbat = b.read() * 2
-    status['vbat'] = float(vbat)
-    publish(status)
 
 def measure5():
     status = {}
@@ -285,27 +217,39 @@ def measure5():
     #get battery voltage
     vbat = b.read() * 2
     status['vbat'] = float(vbat)
-    return publish(status)
+    status['sha'] = s.check.get('sha', '')
+    status['ver'] = uversion
+    publish(status)
+    return True
 
 
 def publish(status):
-    client = mqtt()
+    mqtt()
     if MQTT_DUMMY:
         print('status', status)
     else:
         client.publish(MQTT_TOPIC, json.dumps(status), qos=1)
-    #client.disconnect()
-    return client
 
 
 while True:
-    #measure2(10*60+1)
-    #measure3()
-    #measure4()
-    client = measure5()
+    wdt.feed()
+
+    if not s.measured:
+        s.measured = measure5()
+
+    if s.subscribe_ota:
+        s.subscribe_ota = False
+        client.subscribe('tubby/ota/fw')
+
+    if s.prevent_sleep:
+        client.check_msg()
+        continue
+
     if not DISABLE_DEEPSLEEP:
         my_go_deepsleep(SLEEP)
+
     print('done')
+    s = State()
     client.disconnect()
     #wlan.active(False)
     for _ in range(5):

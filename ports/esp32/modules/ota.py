@@ -37,14 +37,18 @@ class OTA:
         self._cadata = 'ROOT_CA_cert.pem'
         self.tls = tls
         self.log = log
-        if tls:
-            with open(self._key, 'rb') as keyfile:
-                self.key = keyfile.read()
-            with open(self._cert, 'rb') as certfile:
-                self.cert = certfile.read()
-            with open(self._cadata, 'rb') as cadatafile:
-                self.cadata = cadatafile.read()
-        self.cli_soc = self.connect(host, port)
+        self.port = port
+        if port == 0:
+            self.cli_soc = host
+        else:
+            if tls:
+                with open(self._key, 'rb') as keyfile:
+                    self.key = keyfile.read()
+                with open(self._cert, 'rb') as certfile:
+                    self.cert = certfile.read()
+                with open(self._cadata, 'rb') as cadatafile:
+                    self.cadata = cadatafile.read()
+            self.cli_soc = self.connect(host, port)
         self.check_sha = check_sha
         self._total_blocks = 0
         self._OK = False
@@ -73,10 +77,11 @@ class OTA:
         # final_file = b'
         self._total_blocks = blocks
         time.sleep(1)
-        if self.tls:
-            self.cli_soc.setblocking(False)
-        else:
-            self.cli_soc.settimeout(2)
+        if self.port != 0:
+            if self.tls:
+                self.cli_soc.setblocking(False)
+            else:
+                self.cli_soc.settimeout(2)
         while True:
             try:
                 if self.tls:
@@ -100,7 +105,7 @@ class OTA:
                     if self.buflen == BLOCKLEN:
                         self.part.writeblocks(self.block, self.buf)
                     if debug:
-                        print(f"BLOCK # {self.block}; LEN = {self.buflen}", end='\r')
+                        print(f"BLOCK # {self.block + 1}/{self._total_blocks}; LEN = {self.buflen}", end='\r')
                     self.block += 1
                     if self.block == self._total_blocks:
                         break
