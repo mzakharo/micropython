@@ -1,31 +1,25 @@
-import utime as time
-import ujson as json
-import uos
-import io
-from machine import WDT, deepsleep, lightsleep
-from feathers2 import set_ldo2_power, set_led, AMB_LIGHT
-from umqtt.robust import MQTTClient
-from machine import ADC, Pin, reset
-import network
-
-from esp32 import Partition
-try:
-    Partition.mark_app_valid_cancel_rollback()
-except Exception as e:
-    print('mark', e)
-for p in Partition.find(Partition.TYPE_APP):
-    print(p)
-print("active partition:", Partition(Partition.RUNNING).info()[4])
-
-uversion = uos.uname().version
-print('FW version: ', uversion)
+from machine import WDT
 
 class FakeWDT:
     def __init__(self, timeout):pass
     def feed(self): pass
 
-#wdt = WDT(timeout=70000)
-wdt = FakeWDT(timeout=70000)
+wdt = WDT(timeout=70000)
+#wdt = FakeWDT(timeout=70000)
+
+import utime as time
+import ujson as json
+import uos
+import io
+from machine import deepsleep, lightsleep
+from feathers2 import set_ldo2_power, set_led, AMB_LIGHT
+from umqtt.robust import MQTTClient
+from machine import ADC, Pin, reset
+import network
+from esp32 import Partition
+
+uversion = uos.uname().version
+print('FW version: ', uversion)
 
 PROFILING=False
 PROFILING=True
@@ -236,6 +230,7 @@ while True:
 
     if not s.measured:
         s.measured = measure5()
+        Partition.mark_app_valid_cancel_rollback()
 
     if s.subscribe_ota:
         s.subscribe_ota = False
