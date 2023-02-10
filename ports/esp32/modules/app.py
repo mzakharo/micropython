@@ -145,6 +145,7 @@ def run(client, wdt):
         elif topic == MQTT_OTA_FW_TOPIC:
             print('OTA write: fw len:', len(msg))
             s.prevent_sleep = False
+            wdt.feed()
             from ota import OTA
             fw = io.BytesIO(msg)
             ot = OTA(fw, 0, check_sha=s.check_sha, tls=True)
@@ -228,7 +229,6 @@ def run(client, wdt):
 
 
     while True:
-        wdt.feed()
 
         if not s.measured:
             s.measured = measure()
