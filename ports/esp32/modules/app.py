@@ -12,6 +12,15 @@ import network
 PROFILING=False
 PROFILING=True
 
+#NOTE: disable lightsleep/deepsleep to allow USB-UART to stay connected
+
+DISABLE_LIGHTSLEEP = False
+#DISABLE_LIGHTSLEEP = True
+
+#disable deep sleep
+DISABLE_DEEPSLEEP = False
+#DISABLE_DEEPSLEEP = True
+
 #how long to wait between measurements
 SLEEP = 600_000 #3600_000
 if PROFILING:
@@ -22,27 +31,13 @@ ORP_SLEEP = 60_000
 if PROFILING:
     ORP_SLEEP = 3_000
 
-# do not send mqtt
-MQTT_DUMMY = False
-#MQTT_DUMMY = True
-
-#disable lightsleep to allow prints
-DISABLE_LIGHTSLEEP = False
-DISABLE_LIGHTSLEEP = True
-
-#disable deep sleep
-DISABLE_DEEPSLEEP = False
-DISABLE_DEEPSLEEP = True
-
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
 
 name = config.NAME
 MQTT_OTA_CMD_TOPIC = f'{name}/ota/cmd'
 MQTT_OTA_FW_TOPIC = f'{name}/ota/fw'
-MQTT_TOPIC = f'{name}/status'
-if PROFILING:
-    MQTT_TOPIC = f'{name}/profiling'
+MQTT_STATE_TOPIC = f'{name}/status'
 
 ORP_PIN = const(1)
 BAT_PIN = const(3)
@@ -170,7 +165,7 @@ def run(client, wdt):
         m = {'device_class' : 'voltage',
             'unit_of_measurement': 'mV',
             'name': f'{name} Battery',
-            'state_topic': f'{name}/profiling',
+            'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{name}_battery',
             'device' : {
                             'identifiers' : 0,
@@ -188,7 +183,7 @@ def run(client, wdt):
         m = {'device_class' : 'voltage',
             'unit_of_measurement': 'mV',
             'name': f'{name} ORP',
-            'state_topic': f'{name}/profiling',
+            'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{name}_orp',
             'device' : {
                             'identifiers': 0,
@@ -215,11 +210,7 @@ def run(client, wdt):
 
     def publish(status):
         mqtt()
-        if MQTT_DUMMY:
-            print('status', status)
-        else:
-            client.publish(MQTT_TOPIC, json.dumps(status), qos=1)
-
+        client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
 
     def measure():
         status = {}

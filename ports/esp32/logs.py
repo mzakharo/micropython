@@ -1,10 +1,11 @@
 import paho.mqtt.client as mqtt
-client = mqtt.Client()
-client.connect('nas.local');
+import modules.config as config 
 
+client = mqtt.Client()
+client.connect(config.MQTT_SERVER);
 
 def on_connect(client, a, b, c):
-    mytopic = 'tubby/logs'
+    mytopic = f'{config.NAME}/logs'
     client.subscribe(mytopic)
 def on_message(client, userdata, message,tmp=None):
     print(message.payload.decode())
