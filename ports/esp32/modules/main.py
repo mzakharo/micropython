@@ -18,9 +18,6 @@ from machine import ADC, Pin, reset
 import network
 from esp32 import Partition
 
-uversion = uos.uname().version
-print('FW version: ', uversion)
-
 PROFILING=False
 PROFILING=True
 
@@ -40,11 +37,11 @@ MQTT_DUMMY = False
 
 #disable lightsleep to allow prints
 DISABLE_LIGHTSLEEP = False
-#DISABLE_LIGHTSLEEP = True
+DISABLE_LIGHTSLEEP = True
 
 #disable deep sleep
 DISABLE_DEEPSLEEP = False
-#DISABLE_DEEPSLEEP = True
+DISABLE_DEEPSLEEP = True
 
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
@@ -56,6 +53,7 @@ if PROFILING:
 WIFI_PASSWORD = 'W@terl004ever'
 MQTT_SERVER = '192.168.50.96'
 
+MQTT_LOG_TOPIC = f'{name}/logs'
 MQTT_OTA_CMD_TOPIC = f'{name}/ota/cmd'
 MQTT_OTA_FW_TOPIC = f'{name}/ota/fw'
 MQTT_TOPIC = f'{name}/status'
@@ -65,13 +63,42 @@ if PROFILING:
 ORP_PIN = const(1)
 BAT_PIN = const(3)
 
-#import esp
-#esp.osdebug(0, esp.LOG_DEBUG)
-#tic = time.ticks_ms()
-
 def random_string(length=20):
     source = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'
     return ''.join([source[x] for x in [(uos.urandom(1)[0] % len(source)) for _ in range(length)]])
+
+
+client = MQTTClient(client_id=random_string(), server=MQTT_SERVER)
+client.connected = False
+
+class DUP(io.IOBase):
+    def __init__(self, client):
+        self.s = bytearray()
+        self.client = client
+    def write(self, data):
+        if data == b'\r\n':
+            flush = True
+        else:
+            flush = False
+            self.s += data
+        if flush:
+            if self.client.connected:
+                self.client.publish(MQTT_LOG_TOPIC, self.s, qos=0, retain=True)
+                self.s = bytearray()
+            else:
+                self.s += b'\r\n'
+        return len(data)
+    def readinto(self, data):
+        return 0
+
+uos.dupterm(DUP(client))
+
+uversion = uos.uname().version
+print('FW version: ', uversion)
+
+#import esp
+#esp.osdebug(0, esp.LOG_DEBUG)
+#tic = time.ticks_ms()
 
 def mean(v):
     return sum(v) / len(v)
@@ -223,13 +250,13 @@ def wifi():
     print('connected in ', diff)
     return wlan
 
-client = MQTTClient(client_id=random_string(), server=MQTT_SERVER)
 
 def mqtt():
     wifi()
     #print('network config:', wlan.ifconfig())
     client.set_callback(on_message)
     client.connect()
+    client.connected = True
     client.subscribe(MQTT_OTA_CMD_TOPIC)
     discovery(client)
     return client
@@ -278,6 +305,7 @@ while True:
     print('done')
     s = State()
     client.disconnect()
+    client.connected = False
     #wlan.active(False)
     for _ in range(5):
         wdt.feed()

@@ -19,3 +19,6 @@ python3 publish_fw.py  build-UM_FEATHERS2/micropython.bin
 To access webrepl:
 https://github.com/mzakharo/upydev
 
+
+Get OTA logs:
+python3 logs.py
