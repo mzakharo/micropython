@@ -49,17 +49,18 @@ DISABLE_DEEPSLEEP = False
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
 
+name = 'tubby'
 WIFI_SSID = 'wireless_ext'
 if PROFILING:
     WIFI_SSID = 'wireless'
 WIFI_PASSWORD = 'W@terl004ever'
 MQTT_SERVER = '192.168.50.96'
 
-MQTT_OTA_CMD_TOPIC = 'tubby/ota/cmd'
-MQTT_OTA_FW_TOPIC = 'tubby/ota/fw'
-MQTT_TOPIC = 'tubby/status'
+MQTT_OTA_CMD_TOPIC = f'{name}/ota/cmd'
+MQTT_OTA_FW_TOPIC = f'{name}/ota/fw'
+MQTT_TOPIC = f'{name}/status'
 if PROFILING:
-    MQTT_TOPIC = 'tubby/profiling'
+    MQTT_TOPIC = f'{name}/profiling'
 
 ORP_PIN = const(1)
 BAT_PIN = const(3)
@@ -161,6 +162,47 @@ def on_message(topic, msg):
         time.sleep(1)
         reset()
 
+def discovery(client):
+    model = uos.uname().machine
+    manufacturer = s.check.get('sha', '')
+    t = f'homeassistant/sensor/{name}/{name}_battery/config'
+    m = {'device_class' : 'voltage',
+        'unit_of_measurement': 'mV',
+        'name': f'{name} Battery',
+        'state_topic': f'{name}/profiling',
+        'unique_id' : f'ESPsensor{name}_battery',
+        'device' : {
+                        'identifiers' : 0,
+                        'name' : name,
+                        'sw_version' : uversion,
+                        'model' : model,
+                        'manufacturer' : manufacturer,
+                    },
+        'value_template' : "{{ value_json.vbat }}",
+        'force_update' : True,
+        'expire_after' : 10800,
+        }
+    client.publish(t, json.dumps(m), qos=0, retain=True)
+    t = f'homeassistant/sensor/{name}/{name}_orp/config'
+    m = {'device_class' : 'voltage',
+        'unit_of_measurement': 'mV',
+        'name': f'{name} ORP',
+        'state_topic': f'{name}/profiling',
+        'unique_id' : f'ESPsensor{name}_orp',
+        'device' : {
+                        'identifiers': 0,
+                        'name' : name,
+                        'sw_version' : uversion,
+                        'model' : model,
+                        'manufacturer' : manufacturer,
+                    },
+        'value_template' : "{{ value_json.orp }}",
+        'force_update' : True,
+        'expire_after' : 10800,
+        }
+    client.publish(t, json.dumps(m), qos=0, retain=True)
+
+
 wlan = network.WLAN(network.STA_IF)
 
 def wifi():
@@ -189,6 +231,7 @@ def mqtt():
     client.set_callback(on_message)
     client.connect()
     client.subscribe(MQTT_OTA_CMD_TOPIC)
+    discovery(client)
     return client
 
 def publish(status):
@@ -210,8 +253,6 @@ def measure():
     status[f'orp'] = orp
     vbat = b.read_uv() // 1000 * 2
     status['vbat'] = vbat
-    status['sha'] = s.check.get('sha', '')
-    status['ver'] = uversion
     publish(status)
     return True
 

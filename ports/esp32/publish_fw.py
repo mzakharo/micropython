@@ -20,5 +20,5 @@ if len(sys.argv) == 2:
     publish.single('tubby/ota/fw', b, qos=1, retain=True, hostname='nas.local')
     publish.single('tubby/ota/cmd', check_sha, qos=1, retain=True, hostname='nas.local')
 else:
-    publish.single('tubby/ota/fw', '', qos=1, retain=True, hostname='nas.local')
     publish.single('tubby/ota/cmd', '', qos=1, retain=True, hostname='nas.local')
+    publish.single('tubby/ota/fw', '', qos=1, retain=True, hostname='nas.local')
