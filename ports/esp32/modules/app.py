@@ -103,6 +103,7 @@ class State:
             print('check err', e)
 
 #automatic temperature compensation
+# from here: https://docs.rbr-global.com/support/instruments/compensation-equations/ph-simple-temperature-correction-of-ph
 def atc(ph, temp):
     return ph -0.0032 * (ph - 7.0)*(temp-25.0)
 
@@ -275,7 +276,7 @@ def run(client, wdt):
             status = measure()
             mqtt()
 
-            #perform correction
+            #perform ATC (Automatic Temperature Compensation) correction to PH
             status['ph'] = atc(status['ph'], s.temp)
             #estimate free bromine ppm
             fb = tfmicro.fc(status['orp'], status['ph'])
