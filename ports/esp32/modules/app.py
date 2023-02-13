@@ -16,11 +16,11 @@ PROFILING=True
 #NOTE: disable lightsleep/deepsleep to allow USB-UART to stay connected
 
 DISABLE_LIGHTSLEEP = False
-DISABLE_LIGHTSLEEP = True
+#DISABLE_LIGHTSLEEP = True
 
 #disable deep sleep
 DISABLE_DEEPSLEEP = False
-DISABLE_DEEPSLEEP = True
+#DISABLE_DEEPSLEEP = True
 
 #how long to wait between measurements
 SLEEP = 1800_000 # 30 minutes
@@ -133,7 +133,7 @@ def run(client, wdt):
 
     def on_message(topic, msg):
         topic = topic.decode()
-        print('received', topic, msg[:100])
+        #print('received', topic, msg[:100])
         if topic == MQTT_OTA_CMD_TOPIC:
             if msg == b'webrepl':
                 print('enabling webrepl')
@@ -173,7 +173,7 @@ def run(client, wdt):
             reset()
         elif topic == MQTT_BALBOA_TOPIC:
             s.temp = float(msg)
-            print('Balboa temp %f' % s.temp)
+            #print('Balboa temp %f' % s.temp)
 
 
     def discovery(client):
@@ -215,8 +215,22 @@ def run(client, wdt):
             }
         client.publish(t, json.dumps(m), qos=0, retain=True)
 
+        t = f'homeassistant/sensor/{NODE_ID}/{name}_temp/config'
+        m = {'device_class' : 'temperature',
+            'unit_of_measurement': "C",
+            'name': f'{name} Temperature',
+            'state_topic': MQTT_STATE_TOPIC,
+            'unique_id' : f'ESPsensor{NODE_ID}_temp',
+            'device' : device,
+            'value_template' : "{{ value_json.temp }}",
+            'force_update' : True,
+            'expire_after' : 3 * SLEEP // 1000,
+            }
+        client.publish(t, json.dumps(m), qos=0, retain=True)
+
         t = f'homeassistant/sensor/{NODE_ID}/{name}_ph/config'
         m = {
+            'unit_of_measurement': "dB",
             'name': f'{name} PH',
             'icon' : 'mdi:ph',
             'state_topic': MQTT_STATE_TOPIC,
@@ -284,6 +298,7 @@ def run(client, wdt):
                 fb = -1.0
             fb *= 2.25
             status['fb_ppm'] = fb
+            status['temp'] = s.temp
 
             client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
 
