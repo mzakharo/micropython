@@ -2,7 +2,7 @@ import utime as time
 import ujson as json
 import uos
 import io
-from machine import deepsleep, lightsleep
+from machine import deepsleep, lightsleep, unique_id
 from feathers2 import set_ldo2_power, set_led, AMB_LIGHT
 from machine import ADC, Pin, reset
 from esp32 import Partition
@@ -16,11 +16,11 @@ PROFILING=True
 #NOTE: disable lightsleep/deepsleep to allow USB-UART to stay connected
 
 DISABLE_LIGHTSLEEP = False
-#DISABLE_LIGHTSLEEP = True
+DISABLE_LIGHTSLEEP = True
 
 #disable deep sleep
 DISABLE_DEEPSLEEP = False
-#DISABLE_DEEPSLEEP = True
+DISABLE_DEEPSLEEP = True
 
 #how long to wait between measurements
 SLEEP = 1800_000 # 30 minutes
@@ -35,10 +35,12 @@ if PROFILING:
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
 
+NODE_ID = "".join("%x" % b for b in unique_id())
+
 name = config.NAME
-MQTT_OTA_CMD_TOPIC = f'{name}/ota/cmd'
-MQTT_OTA_FW_TOPIC = f'{name}/ota/fw'
-MQTT_STATE_TOPIC = f'{name}/status'
+MQTT_OTA_CMD_TOPIC = f'{name}/{NODE_ID}/ota/cmd'
+MQTT_OTA_FW_TOPIC = f'{name}/{NODE_ID}/ota/fw'
+MQTT_STATE_TOPIC = f'{name}/{NODE_ID}/status'
 
 ORP_PIN = const(1)
 BAT_PIN = const(3)
@@ -106,6 +108,7 @@ def run(client, wdt):
 
     uversion = uos.uname().version
     print('FW version: ', uversion)
+    print('Node ID: ', NODE_ID)
 
     #import esp
     #esp.osdebug(0, esp.LOG_DEBUG)
@@ -114,20 +117,14 @@ def run(client, wdt):
 
     set_led(False) #disable for low power
 
-    o = ADC(Pin(ORP_PIN)) 
-    o.atten(ADC.ATTN_11DB)    # set 11dB input attenuation (voltage range roughly 0.0v - 3.6v)
-    #o.width(ADC.WIDTH_13BIT)
+    #ADC.ATTN_0DB: No attenuation (100mV - 950mV)
+    #ADC.ATTN_2_5DB: 2.5dB attenuation (100mV - 1250mV)
+    #ADC.ATTN_6DB: 6dB attenuation (150mV - 1750mV)
+    #ADC.ATTN_11DB: 11dB attenuation (150mV - 2450mV)
 
-    p = ADC(Pin(PH_PIN)) 
-    p.atten(ADC.ATTN_11DB)    # set 11dB input attenuation (voltage range roughly 0.0v - 3.6v)
-    #p.width(ADC.WIDTH_13BIT)
-
-
-
-    b = ADC(Pin(BAT_PIN)) 
-    b.atten(ADC.ATTN_11DB)    # set 11dB input attenuation (voltage range roughly 0.0v - 3.6v)
-    #b.width(ADC.WIDTH_13BIT)
-
+    o = ADC(Pin(ORP_PIN), atten=ADC.ATTN_11DB) 
+    p = ADC(Pin(PH_PIN),  atten=ADC.ATTN_11DB) 
+    b = ADC(Pin(BAT_PIN), atten=ADC.ATTN_11DB) 
 
     s = State()
 
@@ -174,41 +171,67 @@ def run(client, wdt):
 
     def discovery(client):
         model = uos.uname().machine
-        manufacturer = s.check.get('sha', '')
-        t = f'homeassistant/sensor/{name}/{name}_battery/config'
+        sha = s.check.get('sha', '')[:8]
+
+        device =  {
+                            'identifiers' : NODE_ID,
+                            'name' : name,
+                            'sw_version' : uversion + '_' + sha,
+                            'model' : model,
+                            'manufacturer' : NODE_ID, # for HA UI  -> easy display
+                        }
+
+        t = f'homeassistant/sensor/{NODE_ID}/{name}_battery/config'
         m = {'device_class' : 'voltage',
             'unit_of_measurement': 'mV',
+            'icon' : 'mdi:battery-outline',
             'name': f'{name} Battery',
             'state_topic': MQTT_STATE_TOPIC,
-            'unique_id' : f'ESPsensor{name}_battery',
-            'device' : {
-                            'identifiers' : 0,
-                            'name' : name,
-                            'sw_version' : uversion,
-                            'model' : model,
-                            'manufacturer' : manufacturer,
-                        },
+            'unique_id' : f'ESPsensor{NODE_ID}_battery',
+            'device' : device,
             'value_template' : "{{ value_json.vbat }}",
             'force_update' : True,
-            'expire_after' : 10800,
+            'expire_after' : 3 * SLEEP // 1000,
             }
         client.publish(t, json.dumps(m), qos=0, retain=True)
-        t = f'homeassistant/sensor/{name}/{name}_orp/config'
+
+        t = f'homeassistant/sensor/{NODE_ID}/{name}_orp/config'
         m = {'device_class' : 'voltage',
             'unit_of_measurement': 'mV',
             'name': f'{name} ORP',
             'state_topic': MQTT_STATE_TOPIC,
-            'unique_id' : f'ESPsensor{name}_orp',
-            'device' : {
-                            'identifiers': 0,
-                            'name' : name,
-                            'sw_version' : uversion,
-                            'model' : model,
-                            'manufacturer' : manufacturer,
-                        },
+            'unique_id' : f'ESPsensor{NODE_ID}_orp',
+            'device' : device,
             'value_template' : "{{ value_json.orp }}",
             'force_update' : True,
-            'expire_after' : 10800,
+            'expire_after' : 3 * SLEEP // 1000,
+            }
+        client.publish(t, json.dumps(m), qos=0, retain=True)
+
+        t = f'homeassistant/sensor/{NODE_ID}/{name}_ph/config'
+        m = {
+            'name': f'{name} PH',
+            'icon' : 'mdi:ph',
+            'state_topic': MQTT_STATE_TOPIC,
+            'unique_id' : f'ESPsensor{NODE_ID}_ph',
+            'device' : device,
+            'value_template' : "{{ value_json.ph }}",
+            'force_update' : True,
+            'expire_after' : 3 * SLEEP // 1000,
+            }
+        client.publish(t, json.dumps(m), qos=0, retain=True)
+
+        t = f'homeassistant/sensor/{NODE_ID}/{name}_fb_ppm/config'
+        m = {
+            'unit_of_measurement': 'ppm',
+            'name': f'{name} Bromine PPM',
+            'icon' : 'mdi:chemical-weapon',
+            'state_topic': MQTT_STATE_TOPIC,
+            'unique_id' : f'ESPsensor{NODE_ID}_fb_ppm',
+            'device' : device,
+            'value_template' : "{{ value_json.fb_ppm }}",
+            'force_update' : True,
+            'expire_after' : 3 * SLEEP // 1000,
             }
         client.publish(t, json.dumps(m), qos=0, retain=True)
 

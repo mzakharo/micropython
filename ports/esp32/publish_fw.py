@@ -5,8 +5,10 @@ from binascii import hexlify
 
 import modules.config as config 
 
-if len(sys.argv) == 2:
-    with open(sys.argv[1], 'rb') as f:
+NODE_ID = sys.argv[1]
+
+if len(sys.argv) == 3:
+    with open(sys.argv[2], 'rb') as f:
         b = f.read()
 
     BLOCKLEN = 4096
@@ -18,8 +20,8 @@ if len(sys.argv) == 2:
     check_sha = hexlify(hf.digest()).decode()
 
     print('publishing len', len(b), 'sha', check_sha)
-    publish.single(f'{config.NAME}/ota/fw', b, qos=1, retain=True, hostname=config.MQTT_SERVER)
-    publish.single(f'{config.NAME}/ota/cmd', check_sha, qos=1, retain=True, hostname=config.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', b, qos=1, retain=True, hostname=config.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', check_sha, qos=1, retain=True, hostname=config.MQTT_SERVER)
 else:
-    publish.single(f'{config.NAME}/ota/cmd', '', qos=1, retain=True, hostname=config.MQTT_SERVER)
-    publish.single(f'{config.NAME}/ota/fw', '', qos=1, retain=True, hostname=config.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', '', qos=1, retain=True, hostname=config.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', '', qos=1, retain=True, hostname=config.MQTT_SERVER)

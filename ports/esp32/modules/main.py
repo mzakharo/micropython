@@ -9,8 +9,10 @@ import uos
 from umqtt.robust import MQTTClient
 import config
 import io
+from machine import unique_id
 
-MQTT_LOG_TOPIC = f'{config.NAME}/logs'
+NODE_ID = "".join("%x" % b for b in unique_id())
+MQTT_LOG_TOPIC = f'{config.NAME}/{NODE_ID}/logs'
 
 def random_string(length=20):
     source = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'

@@ -14,11 +14,11 @@ Deploy:
 make deploy
 
 Publish firmware for OTA:
-python3 publish_fw.py  build-UM_FEATHERS2/micropython.bin 
+python3 publish_fw.py <NODE_ID>  build-UM_FEATHERS2/micropython.bin 
 
 To access webrepl:
 https://github.com/mzakharo/upydev
 
 
 Get OTA logs:
-python3 logs.py
+python3 logs.py <NODE_ID>
