@@ -41,6 +41,7 @@ name = config.NAME
 MQTT_OTA_CMD_TOPIC = f'{name}/{NODE_ID}/ota/cmd'
 MQTT_OTA_FW_TOPIC = f'{name}/{NODE_ID}/ota/fw'
 MQTT_STATE_TOPIC = f'{name}/{NODE_ID}/status'
+MQTT_BALBOA_TOPIC = f'balboa/temp'
 
 ORP_PIN = const(1)
 BAT_PIN = const(3)
@@ -94,6 +95,7 @@ class State:
         self.measured = False
         self.check_sha = b''
         self.check = {}
+        self.temp = 40.0
         try:
             with open('check_sha.txt', 'r') as f:
                 self.check = json.loads(f.read())
@@ -168,6 +170,10 @@ def run(client, wdt):
             print('Rebooting device...')
             time.sleep(1)
             reset()
+        elif topic == MQTT_BALBOA_TOPIC:
+            s.temp = float(msg)
+            print('Balboa temp %f' % s.temp)
+
 
     def discovery(client):
         model = uos.uname().machine
@@ -233,21 +239,17 @@ def run(client, wdt):
             'force_update' : True,
             'expire_after' : 3 * SLEEP // 1000,
             }
-        client.publish(t, json.dumps(m), qos=0, retain=True)
-
-
+        client.publish(t, json.dumps(m), qos=1, retain=True) #last one with qos=1 so that we can receive balboa temperature
 
     def mqtt():
         wifi(wdt, config.WIFI_SSID, config.WIFI_PASSWORD)
         client.set_callback(on_message)
         client.connect()
         client.subscribe(MQTT_OTA_CMD_TOPIC)
+        client.subscribe(MQTT_BALBOA_TOPIC) # for temperature
         discovery(client)
         return client
 
-    def publish(status):
-        mqtt()
-        client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
 
     def measure():
         status = {}
@@ -262,24 +264,30 @@ def run(client, wdt):
         status['vbat'] = vbat
         phv = p.read_uv() / 1e6
         ph = (-5.6548 * phv) + 15.509
-        status['ph'] = atc(ph, 40.0)  #TODO: get exact temp reading from the Hot Tub sensor
+        status['ph'] = ph 
 
         set_ldo2_power(False)
-
-        #estimate free bromine ppm
-        fb = tfmicro.fc(status['orp'], status['ph'])
-        if fb is None:
-            fb = -1.0
-        fb *= 2.25
-        status['fb_ppm'] = fb
-
-        publish(status)
-        return True
+        return status
 
     while True:
 
         if not s.measured:
-            s.measured = measure()
+            status = measure()
+            mqtt()
+
+            #perform correction
+            status['ph'] = atc(status['ph'], s.temp)
+            #estimate free bromine ppm
+            fb = tfmicro.fc(status['orp'], status['ph'])
+            if fb is None:
+                fb = -1.0
+            fb *= 2.25
+            status['fb_ppm'] = fb
+
+            client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
+
+            #mark success
+            s.measured = True
             Partition.mark_app_valid_cancel_rollback()
 
         if s.subscribe_ota:
