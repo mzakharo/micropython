@@ -22,6 +22,10 @@ DISABLE_LIGHTSLEEP = False
 DISABLE_DEEPSLEEP = False
 #DISABLE_DEEPSLEEP = True
 
+NUM_SAMPLES = 20
+if PROFILING:
+    NUM_SAMPLES = 2
+
 #how long to wait between measurements
 SLEEP = 1800_000 # 30 minutes
 if PROFILING:
@@ -106,6 +110,20 @@ class State:
 # from here: https://docs.rbr-global.com/support/instruments/compensation-equations/ph-simple-temperature-correction-of-ph
 def atc(ph, temp):
     return ph -0.0032 * (ph - 7.0)*(temp-25.0)
+
+
+def resample(array):
+    keys = array[0].keys()
+    out = {}
+    for key in keys:
+        out[key] = []
+    for v in array:
+        for key in keys:
+            out[key].append(v[key])
+    for key in keys:
+        out[key] = mean(out[key])
+    return out
+
 
 def run(client, wdt):
 
@@ -245,7 +263,7 @@ def run(client, wdt):
         t = f'homeassistant/sensor/{NODE_ID}/{name}_fb_ppm/config'
         m = {
             'unit_of_measurement': 'ppm',
-            'name': f'{name} Bromine PPM',
+            'name': f'{name} Free Bromine',
             'icon' : 'mdi:chemical-weapon',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_fb_ppm',
@@ -267,21 +285,33 @@ def run(client, wdt):
 
 
     def measure():
-        status = {}
         set_ldo2_power(True)
         wdt.feed()
         my_sleep_ms(ORP_SLEEP)
         wdt.feed()
 
-        orp = o.read_uv() // 1000 - 1500
-        status['orp'] = orp
-        vbat = b.read_uv() // 1000 * 2
-        status['vbat'] = vbat
-        phv = p.read_uv() / 1e6
-        ph = (-5.6548 * phv) + 15.509
-        status['ph'] = ph 
+        values = []
+        for i in range(NUM_SAMPLES):
+            status = {}
+            orp = o.read_uv() // 1000 - 1500
+            status['orp'] = orp
+            vbat = b.read_uv() // 1000 * 2
+            status['vbat'] = vbat
+            phv = p.read_uv() / 1e6
+            ph = (-5.6548 * phv) + 15.509
+            status['ph'] = ph 
+            values.append(status)
+            if i != NUM_SAMPLES - 1:
+                my_sleep_ms(1_000)
 
         set_ldo2_power(False)
+
+        status = resample(values)
+
+        #convert from float
+        status['orp'] = round(status['orp'])
+        status['vbat'] = round(status['vbat'])
+
         return status
 
     while True:
