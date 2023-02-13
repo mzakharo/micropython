@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.12)
 # Set the location of this port's directory.
 set(MICROPY_PORT_DIR ${CMAKE_SOURCE_DIR})
 
+set(EXTRA_COMPONENT_DIRS ${MICROPY_PORT_DIR}/../../../tflite-micro-esp-examples/components/ )
 # Set the board if it's not already set.
 if(NOT MICROPY_BOARD)
     set(MICROPY_BOARD GENERIC)
