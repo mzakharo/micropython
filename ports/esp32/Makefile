@@ -14,7 +14,7 @@ BAUD ?= 460800
 
 PYTHON ?= python3
 
-USER_C_MODULES=$(shell pwd)/../../../src/micropython.cmake
+USER_C_MODULES=$(shell pwd)/../../tfmicro/micropython.cmake
 
 # Would be good to use cmake to discover submodules (see how rp2/Makefile does
 # it), but on ESP32 the same trick doesn't work because "idf.py build" fails
