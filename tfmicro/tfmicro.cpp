@@ -54,8 +54,7 @@ mp_obj_t fc(mp_obj_t a_obj, mp_obj_t b_obj) {
   float y = output->data.f[0];
 
   mp_obj_t oy = mp_obj_new_float(y);
-  // Prove we're being scanned for QSTRs.
-  mp_obj_t tup[] = {oy, MP_ROM_QSTR(MP_QSTR_hellocpp)};
-  return mp_obj_new_tuple(2, tup);
+  //mp_obj_t tup[] = {oy, MP_ROM_QSTR(MP_QSTR_hellocpp)};
+  return oy;
 }
 }

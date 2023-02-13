@@ -8,6 +8,7 @@ from machine import ADC, Pin, reset
 from esp32 import Partition
 import config
 import network
+import tfmicro #custom user module for tflite-micro models
 
 PROFILING=False
 PROFILING=True
@@ -22,7 +23,7 @@ DISABLE_DEEPSLEEP = False
 #DISABLE_DEEPSLEEP = True
 
 #how long to wait between measurements
-SLEEP = 600_000 #3600_000
+SLEEP = 1800_000 # 30 minutes
 if PROFILING:
     SLEEP = 5_000
 
@@ -41,6 +42,7 @@ MQTT_STATE_TOPIC = f'{name}/status'
 
 ORP_PIN = const(1)
 BAT_PIN = const(3)
+PH_PIN = const(7)
 
 def wifi(wdt, ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -69,6 +71,7 @@ def median(v):
 
 def my_go_deepsleep(duration):
     Pin(ORP_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
+    Pin(PH_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
     Pin(BAT_PIN, Pin.IN, Pin.PULL_UP, hold=True)
     #Pin(AMB_LIGHT, Pin.IN, Pin.PULL_UP, hold=True)
     deepsleep(duration)
@@ -95,6 +98,10 @@ class State:
         except Exception as e:
             print('check err', e)
 
+#automatic temperature compensation
+def atc(ph, temp):
+    return ph -0.0032 * (ph - 7.0)*(temp-25.0)
+
 def run(client, wdt):
 
     uversion = uos.uname().version
@@ -110,6 +117,12 @@ def run(client, wdt):
     o = ADC(Pin(ORP_PIN)) 
     o.atten(ADC.ATTN_11DB)    # set 11dB input attenuation (voltage range roughly 0.0v - 3.6v)
     #o.width(ADC.WIDTH_13BIT)
+
+    p = ADC(Pin(PH_PIN)) 
+    p.atten(ADC.ATTN_11DB)    # set 11dB input attenuation (voltage range roughly 0.0v - 3.6v)
+    #p.width(ADC.WIDTH_13BIT)
+
+
 
     b = ADC(Pin(BAT_PIN)) 
     b.atten(ADC.ATTN_11DB)    # set 11dB input attenuation (voltage range roughly 0.0v - 3.6v)
@@ -219,14 +232,26 @@ def run(client, wdt):
         wdt.feed()
         my_sleep_ms(ORP_SLEEP)
         wdt.feed()
+
         orp = o.read_uv() // 1000 - 1500
-        set_ldo2_power(False)
-        status[f'orp'] = orp
+        status['orp'] = orp
         vbat = b.read_uv() // 1000 * 2
         status['vbat'] = vbat
+        phv = p.read_uv() / 1e6
+        ph = (-5.6548 * phv) + 15.509
+        status['ph'] = atc(ph, 40.0)  #TODO: get exact temp reading from the Hot Tub sensor
+
+        set_ldo2_power(False)
+
+        #estimate free bromine ppm
+        fb = tfmicro.fc(status['orp'], status['ph'])
+        if fb is None:
+            fb = -1.0
+        fb *= 2.25
+        status['fb_ppm'] = fb
+
         publish(status)
         return True
-
 
     while True:
 
