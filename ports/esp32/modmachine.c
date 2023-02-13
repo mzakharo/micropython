@@ -163,8 +163,13 @@ STATIC mp_obj_t machine_sleep_helper(wake_type_t wake_type, size_t n_args, const
 
     switch (wake_type) {
         case MACHINE_WAKE_SLEEP:
-            esp_light_sleep_start();
+          {
+            esp_err_t err = esp_light_sleep_start();
+            if (err != ESP_OK) {
+              mp_raise_msg_varg(&mp_type_RuntimeError, MP_ERROR_TEXT("esp_light_sleep_start() failed. (%d)"), err);
+            }
             break;
+          }
         case MACHINE_WAKE_DEEPSLEEP:
             esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH,   ESP_PD_OPTION_OFF);
             esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_SLOW_MEM, ESP_PD_OPTION_OFF);
