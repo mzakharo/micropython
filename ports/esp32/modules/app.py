@@ -135,17 +135,16 @@ def run(client, wdt):
     #esp.osdebug(0, esp.LOG_DEBUG)
     #tic = time.ticks_ms()
 
-
-    set_led(False) #disable for low power
-
     #ADC.ATTN_0DB: No attenuation (100mV - 950mV)
     #ADC.ATTN_2_5DB: 2.5dB attenuation (100mV - 1250mV)
     #ADC.ATTN_6DB: 6dB attenuation (150mV - 1750mV)
     #ADC.ATTN_11DB: 11dB attenuation (150mV - 2450mV)
 
-    o = ADC(Pin(ORP_PIN), atten=ADC.ATTN_11DB) 
-    p = ADC(Pin(PH_PIN),  atten=ADC.ATTN_11DB) 
-    b = ADC(Pin(BAT_PIN), atten=ADC.ATTN_11DB) 
+    ao = ADC(Pin(ORP_PIN), atten=ADC.ATTN_11DB) 
+    ap = ADC(Pin(PH_PIN),  atten=ADC.ATTN_11DB) 
+    ab = ADC(Pin(BAT_PIN), atten=ADC.ATTN_11DB) 
+
+    set_led(False) #disable for low power
 
     s = State()
 
@@ -165,7 +164,7 @@ def run(client, wdt):
                 my_part = s.check.get('part', '')
 
                 if my_sha == sha and my_part == part:
-                    print('OTA skip: already running this image')
+                    print('OTA skip: already running this image:', sha[:8])
                     return
 
                 print(f'OTA Queue: my_sha: {my_sha}, sha: {sha} my_part: {my_part} part: {part}')
@@ -287,17 +286,23 @@ def run(client, wdt):
     def measure():
         set_ldo2_power(True)
         wdt.feed()
+
+        #dummy read to lower light sleep current to 1.1ma from 2.4mA
+        #WHY IS THIS HAPPENING???
+        ao.read_uv()
+
         my_sleep_ms(ORP_SLEEP)
         wdt.feed()
+
 
         values = []
         for i in range(NUM_SAMPLES):
             status = {}
-            orp = o.read_uv() // 1000 - 1500
+            orp = ao.read_uv() // 1000 - 1500
             status['orp'] = orp
-            vbat = b.read_uv() // 1000 * 2
+            vbat = ab.read_uv() // 1000 * 2
             status['vbat'] = vbat
-            phv = p.read_uv() / 1e6
+            phv = ap.read_uv() / 1e6
             ph = (-5.6548 * phv) + 15.509
             status['ph'] = ph 
             values.append(status)
