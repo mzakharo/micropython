@@ -312,6 +312,7 @@ def run(client, wdt):
         set_ldo2_power(False)
 
         status = resample(values)
+        status['_raw'] = values
 
         #convert from float
         status['orp'] = round(status['orp'])
