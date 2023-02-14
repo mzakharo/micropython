@@ -13,6 +13,12 @@ import tfmicro #custom user module for tflite-micro models
 PROFILING=False
 PROFILING=True
 
+CALIBRATION=False
+CALIBRATION=True
+
+if CALIBRATION:
+    PROFILING = False
+
 #NOTE: disable lightsleep/deepsleep to allow USB-UART to stay connected
 
 DISABLE_LIGHTSLEEP = False
@@ -22,19 +28,20 @@ DISABLE_LIGHTSLEEP = False
 DISABLE_DEEPSLEEP = False
 #DISABLE_DEEPSLEEP = True
 
-NUM_SAMPLES = 20
+#ensure odd number for median resampling
+NUM_SAMPLES = 21
 if PROFILING:
-    NUM_SAMPLES = 2
+    NUM_SAMPLES = 3
 
 #how long to wait between measurements
 SLEEP = 1800_000 # 30 minutes
-if PROFILING:
+if PROFILING or CALIBRATION:
     SLEEP = 5_000
 
 #how long to wait for sensor to calibrate
-ORP_SLEEP = 60_000
+SENSOR_CALIBRATE_SLEEP = 60_000
 if PROFILING:
-    ORP_SLEEP = 3_000
+    SENSOR_CALIBRATE_SLEEP = 3_000
 
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
@@ -45,6 +52,8 @@ name = config.NAME
 MQTT_OTA_CMD_TOPIC = f'{name}/{NODE_ID}/ota/cmd'
 MQTT_OTA_FW_TOPIC = f'{name}/{NODE_ID}/ota/fw'
 MQTT_STATE_TOPIC = f'{name}/{NODE_ID}/status'
+
+#pybalboa temperature status published by https://github.com/mzakharo/pybalboa/blob/master/main.py
 MQTT_BALBOA_TOPIC = f'balboa/temp'
 
 ORP_PIN = const(1)
@@ -74,7 +83,7 @@ def mean(v):
 
 def median(v):
     l = sorted(v)
-    return l[len(v)//2]
+    return l[len(v)//2+1]
 
 def my_go_deepsleep(duration):
     Pin(ORP_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
@@ -107,12 +116,12 @@ class State:
             print('check err', e)
 
 #automatic temperature compensation
-# from here: https://docs.rbr-global.com/support/instruments/compensation-equations/ph-simple-temperature-correction-of-ph
+# source: https://docs.rbr-global.com/support/instruments/compensation-equations/ph-simple-temperature-correction-of-ph
 def atc(ph, temp):
-    return ph -0.0032 * (ph - 7.0)*(temp-25.0)
+    return ph - 0.0032 * (ph - 7.0) * (temp - 25.0)
 
 
-def resample(array):
+def resample(array, func):
     keys = array[0].keys()
     out = {}
     for key in keys:
@@ -121,7 +130,7 @@ def resample(array):
         for key in keys:
             out[key].append(v[key])
     for key in keys:
-        out[key] = mean(out[key])
+        out[key] = func(out[key])
     return out
 
 
@@ -288,31 +297,32 @@ def run(client, wdt):
         wdt.feed()
 
         #dummy read to lower light sleep current to 1.1ma from 2.4mA
-        #WHY IS THIS HAPPENING???
+        #Can anyone explain THIS????
         ao.read_uv()
 
-        my_sleep_ms(ORP_SLEEP)
+        my_sleep_ms(SENSOR_CALIBRATE_SLEEP)
         wdt.feed()
 
-
-        values = []
+        samples = []
         for i in range(NUM_SAMPLES):
-            status = {}
+            raw = {}
             orp = ao.read_uv() // 1000 - 1500
-            status['orp'] = orp
+            raw['orp'] = orp
             vbat = ab.read_uv() // 1000 * 2
-            status['vbat'] = vbat
+            raw['vbat'] = vbat
             phv = ap.read_uv() / 1e6
             ph = (-5.6548 * phv) + 15.509
-            status['ph'] = ph 
-            values.append(status)
+            raw['ph'] = ph 
+            samples.append(raw)
             if i != NUM_SAMPLES - 1:
                 my_sleep_ms(1_000)
 
         set_ldo2_power(False)
+        wdt.feed()
 
-        status = resample(values)
-        status['_raw'] = values
+        status = resample(samples, median)
+        if CALIBRATION:
+            status['_raw'] = samples
 
         #convert from float
         status['orp'] = round(status['orp'])
@@ -320,24 +330,24 @@ def run(client, wdt):
 
         return status
 
+    def publish(status):
+        #perform PH ATC (Automatic Temperature Compensation)
+        status['ph'] = atc(status['ph'], s.temp)
+        #estimate free chlorine ppm
+        fb = tfmicro.fc(status['orp'], status['ph'])
+        if fb is None:
+            fb = -1.0
+        fb *= 2.25 #chlorine to bromine
+        status['fb_ppm'] = fb
+        status['temp'] = s.temp
+        client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
+
     while True:
 
         if not s.measured:
             status = measure()
             mqtt()
-
-            #perform ATC (Automatic Temperature Compensation) correction to PH
-            status['ph'] = atc(status['ph'], s.temp)
-            #estimate free bromine ppm
-            fb = tfmicro.fc(status['orp'], status['ph'])
-            if fb is None:
-                fb = -1.0
-            fb *= 2.25
-            status['fb_ppm'] = fb
-            status['temp'] = s.temp
-
-            client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
-
+            publish(status)
             #mark success
             s.measured = True
             Partition.mark_app_valid_cancel_rollback()

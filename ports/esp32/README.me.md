@@ -4,6 +4,10 @@ git clone -b v4.4.4 --recursive https://github.com/espressif/esp-idf.git
 source esp-idf/export.sh
 git submodule update --init --recursive
 ```
+
+Configure WiFi
+python3 configure.py <SSID>  <PASSWORD>
+
 Build:
 ```
 make
