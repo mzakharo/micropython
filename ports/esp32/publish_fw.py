@@ -4,6 +4,7 @@ import hashlib
 from binascii import hexlify
 
 import modules.config as config 
+import modules.secrets as secrets
 
 NODE_ID = sys.argv[1]
 
@@ -20,8 +21,8 @@ if len(sys.argv) == 3:
     check_sha = hexlify(hf.digest()).decode()
 
     print('publishing len', len(b), 'sha', check_sha)
-    publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', b, qos=1, retain=True, hostname=config.MQTT_SERVER)
-    publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', check_sha, qos=1, retain=True, hostname=config.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', b, qos=1, retain=True, hostname=secrets.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', check_sha, qos=1, retain=True, hostname=secrets.MQTT_SERVER)
 else:
-    publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', '', qos=1, retain=True, hostname=config.MQTT_SERVER)
-    publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', '', qos=1, retain=True, hostname=config.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', '', qos=1, retain=True, hostname=secrets.MQTT_SERVER)
+    publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', '', qos=1, retain=True, hostname=secrets.MQTT_SERVER)

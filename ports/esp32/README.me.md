@@ -5,14 +5,8 @@ source esp-idf/export.sh
 git submodule update --init --recursive
 ```
 
-# Configure WiFi
-python3 configure.py <SSID>  <PASSWORD>
-
-
-# Edit constants in modules/config.py
-
-- NAME
-- MQTT_SERVER 
+# Configure WiFi & MQTT
+python3 configure.py <WIFI_SSID> <WIFI_PASSWORD> <MQTT_SERVER>
 
 # Build:
 ```

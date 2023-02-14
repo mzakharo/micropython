@@ -30,7 +30,7 @@ class MyMQTT(MQTTClient):
         self.connected = False
         return ret
 
-client = MyMQTT(client_id=random_string(), server=config.MQTT_SERVER)
+client = MyMQTT(client_id=random_string(), server=secrets.MQTT_SERVER)
 
 class DUP(io.IOBase):
     def __init__(self, client):

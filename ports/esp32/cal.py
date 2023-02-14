@@ -1,12 +1,13 @@
 import paho.mqtt.client as mqtt
 import modules.config as config 
+import modules.secrets as secrets
 import sys
 import pandas as pd
 import json
 import time
 
 client = mqtt.Client()
-client.connect(config.MQTT_SERVER);
+client.connect(secrets.MQTT_SERVER);
 
 def on_connect(client, a, b, c):
     mytopic = f'{config.NAME}/+/status'
