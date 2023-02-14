@@ -1,39 +1,47 @@
-Prepare build:
+# Prepare build:
 ```
 git clone -b v4.4.4 --recursive https://github.com/espressif/esp-idf.git
 source esp-idf/export.sh
 git submodule update --init --recursive
 ```
 
-Configure WiFi
+# Configure WiFi
 python3 configure.py <SSID>  <PASSWORD>
 
-Build:
+
+# Edit constants in modules/config.py
+
+- NAME
+- MQTT_SERVER 
+
+# Build:
 ```
 make
 ```
 
-Erase flash:
+# Erase flash:
 ```
 make erase
 ```
 
-Flash firmware:
+# Flash firmware:
 ```
 make deploy
 ```
 
-Publish firmware for OTA:
+# Publish firmware for OTA:
 ```
 python3 publish_fw.py <NODE_ID>  build-UM_FEATHERS2/micropython.bin 
 ```
 
-To access webrepl:
+# Get OTA logs:
+```
+python3 logs.py <NODE_ID>
+```
+
+# To access webrepl:
 ```
 https://github.com/mzakharo/upydev
 ```
 
-Get OTA logs:
-```
-python3 logs.py <NODE_ID>
-```
+

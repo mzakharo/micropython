@@ -7,6 +7,7 @@ from feathers2 import set_ldo2_power, set_led, AMB_LIGHT
 from machine import ADC, Pin, reset
 from esp32 import Partition
 import config
+import secrets
 import network
 import tfmicro #custom user module for tflite-micro models
 
@@ -283,7 +284,7 @@ def run(client, wdt):
         client.publish(t, json.dumps(m), qos=1, retain=True) #last one with qos=1 so that we can receive balboa temperature
 
     def mqtt():
-        wifi(wdt, config.WIFI_SSID, config.WIFI_PASSWORD)
+        wifi(wdt, secrets.WIFI_SSID, secrets.WIFI_PASSWORD)
         client.set_callback(on_message)
         client.connect()
         client.subscribe(MQTT_OTA_CMD_TOPIC)

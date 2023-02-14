@@ -8,6 +8,7 @@ wdt = WDT(timeout=70000)
 import uos
 from umqtt.robust import MQTTClient
 import config
+import secrets
 import io
 from machine import unique_id
 
@@ -61,7 +62,7 @@ except Exception as e:
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
         if not wlan.isconnected():
-            wlan.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
+            wlan.connect(secrets.WIFI_SSID, secrets.WIFI_PASSWORD)
         while not wlan.isconnected(): pass
         client.connect()
     import sys
