@@ -11,25 +11,25 @@ import secrets
 import network
 import tfmicro #custom user module for tflite-micro models
 
-PROFILING=False
-PROFILING=True
-
-CALIBRATION=False
-CALIBRATION=True
-
-
 #Calibration constants 
+
 ORP_CAL_OFFSET = 25
-PH_MID_CAL = 1537
+PH_MID_CAL = 1530
 PH_LOW_CAL = 2028
 PH_HIGH_CAL = 1042
 BAT_LOW = 3200
 BAT_HIGH = 3900
 
+#DEBUG config constants
+
+PROFILING=False
+#PROFILING=True
+
+CALIBRATION=False
+#CALIBRATION=True
+
 if CALIBRATION:
     PROFILING = False
-
-#NOTE: disable lightsleep/deepsleep to allow USB-UART to stay connected
 
 DISABLE_LIGHTSLEEP = False
 #DISABLE_LIGHTSLEEP = True
@@ -37,6 +37,9 @@ DISABLE_LIGHTSLEEP = False
 #disable deep sleep
 DISABLE_DEEPSLEEP = False
 #DISABLE_DEEPSLEEP = True
+
+
+
 
 NUM_SAMPLES = 1000 #from Atlas Scientific sample code
 
@@ -326,7 +329,8 @@ def run(client, wdt):
         else:
             status['ph'] = 7.0 - 3.0 / (PH_MID_CAL - PH_HIGH_CAL) * (status['ph_mv'] - PH_MID_CAL)
 
-        status['bat'] = round((status['vbat'] - BAT_LOW) / (BAT_HIGH - BAT_LOW) * 100)
+        status['bat'] = round((status['vbat'] - BAT_LOW) / (BAT_HIGH - BAT_LOW) * 100) 
+        status['bat'] = min(0, max(100, status['bat']))
 
         return status
 
@@ -335,7 +339,7 @@ def run(client, wdt):
     def publish(status):
         #perform PH ATC (Automatic Temperature Compensation)
         if not CALIBRATION:
-            status['ph'] = atc(status['ph'], s.temp)
+            status['ph'] = round(atc(status['ph'], s.temp), 1)
         #estimate free chlorine ppm
         fb = tfmicro.fc(status['orp'], status['ph'])
         if fb is None:
