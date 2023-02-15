@@ -17,7 +17,7 @@ import tfmicro #custom user module for tflite-micro models
 ORP_CAL_OFFSET = 21
 
 #PH Probe
-PH_MID_CAL = 1530
+PH_MID_CAL = 1533
 PH_LOW_CAL = 2031
 PH_HIGH_CAL = 1042
 
