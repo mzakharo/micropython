@@ -15,7 +15,7 @@ import tfmicro #custom user module for tflite-micro models
 
 ORP_CAL_OFFSET = 25
 PH_MID_CAL = 1530
-PH_LOW_CAL = 2028
+PH_LOW_CAL = 2031
 PH_HIGH_CAL = 1042
 BAT_LOW = 3200
 BAT_HIGH = 3900
@@ -330,7 +330,7 @@ def run(client, wdt):
             status['ph'] = 7.0 - 3.0 / (PH_MID_CAL - PH_HIGH_CAL) * (status['ph_mv'] - PH_MID_CAL)
 
         status['bat'] = round((status['vbat'] - BAT_LOW) / (BAT_HIGH - BAT_LOW) * 100) 
-        status['bat'] = min(0, max(100, status['bat']))
+        status['bat'] = max(0, min(100, status['bat']))
 
         return status
 
