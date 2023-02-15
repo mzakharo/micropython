@@ -17,10 +17,14 @@ PROFILING=True
 CALIBRATION=False
 CALIBRATION=True
 
-ORP_CAL_OFFSET = 0
-PH_MID_CAL = 1500
-PH_LOW_CAL = 2030
-PH_HIGH_CAL = 975
+
+#Calibration constants 
+ORP_CAL_OFFSET = 25
+PH_MID_CAL = 1537
+PH_LOW_CAL = 2028
+PH_HIGH_CAL = 1042
+BAT_LOW = 3200
+BAT_HIGH = 3900
 
 if CALIBRATION:
     PROFILING = False
@@ -64,7 +68,7 @@ TEMP_CELSIUS = "°C"
 
 ORP_PIN = const(1)
 PH_PIN = const(3)
-BAT_PIN = const(7)
+BAT_PIN = const(7) # Voltage divider between BAT_PIN and VBAT_PIN & Ground. Resistors: Brown Black Yellow.
 
 def wifi(wdt, ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -210,14 +214,14 @@ def run(client, wdt):
                         }
 
         t = f'homeassistant/sensor/{NODE_ID}/{name}_battery/config'
-        m = {'device_class' : 'voltage',
-            'unit_of_measurement': 'mV',
-            'icon' : 'mdi:battery-outline',
+        m = {'device_class' : 'battery',
+            'unit_of_measurement': '%',
+            'icon' : 'mdi:battery',
             'name': f'{name} Battery',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_battery',
             'device' : device,
-            'value_template' : "{{ value_json.vbat }}",
+            'value_template' : "{{ value_json.bat }}",
             'force_update' : True,
             'expire_after' : expire,
             }
@@ -290,7 +294,7 @@ def run(client, wdt):
 
     def measure():
         set_ldo2_power(True)
-        set_led(True)
+        #set_led(True)
         wdt.feed()
 
         #dummy read to lower light sleep current to 1.1ma from 2.4mA
@@ -308,12 +312,12 @@ def run(client, wdt):
             #if i != NUM_SAMPLES - 1:
             #    my_sleep_ms(1_000)
         set_ldo2_power(False)
-        set_led(False)
+        #set_led(False)
         wdt.feed()
 
         status = {key : median(vals) for key, vals in raw.items()}
-        status['orp'] = round(status['orp'] / 1000) - 1500 - ORP_CAL_OFFSET #from Atlas Scientific sample code
-        status['vbat'] = round(status['vbat'] / 1000 * 2) #custom voltage divider
+        status['orp'] = round(status['orp'] / 1000) - 1500 + ORP_CAL_OFFSET #from Atlas Scientific sample code
+        status['vbat'] = round(status['vbat'] / 1000 * 2) #2 resistor voltage divider
         status['ph_mv'] = round(status['ph'] / 1000)
 
         # from Atlas Scientific sample code
@@ -321,6 +325,8 @@ def run(client, wdt):
             status['ph'] = 7.0 - 3.0 / (PH_LOW_CAL - PH_MID_CAL) * (status['ph_mv'] - PH_MID_CAL)
         else:
             status['ph'] = 7.0 - 3.0 / (PH_MID_CAL - PH_HIGH_CAL) * (status['ph_mv'] - PH_MID_CAL)
+
+        status['bat'] = round((status['vbat'] - BAT_LOW) / (BAT_HIGH - BAT_LOW) * 100)
 
         return status
 
