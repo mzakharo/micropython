@@ -13,12 +13,20 @@ import tfmicro #custom user module for tflite-micro models
 
 #Calibration constants 
 
+#ORP Probe
 ORP_CAL_OFFSET = 25
+
+#PH Probe
 PH_MID_CAL = 1530
 PH_LOW_CAL = 2031
 PH_HIGH_CAL = 1042
+
+#Battery sensing
 BAT_LOW = 3200
 BAT_HIGH = 3900
+
+#pH+ORP->FC model cal
+ORP_PH_MODEL_OFFSET = 200
 
 #DEBUG config constants
 
@@ -341,7 +349,7 @@ def run(client, wdt):
         if not CALIBRATION:
             status['ph'] = round(atc(status['ph'], s.temp), 2)
         #estimate free chlorine ppm
-        fb = tfmicro.fc(status['orp'], status['ph'])
+        fb = tfmicro.fc(status['orp'] + ORP_PH_MODEL_OFFSET, status['ph'])
         if fb is None:
             fb = -1.0
         fb *= 2.25 #chlorine to bromine
