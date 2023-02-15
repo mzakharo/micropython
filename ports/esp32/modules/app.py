@@ -17,6 +17,11 @@ PROFILING=True
 CALIBRATION=False
 CALIBRATION=True
 
+ORP_CAL_OFFSET = 0
+PH_MID_CAL = 1500
+PH_LOW_CAL = 2030
+PH_HIGH_CAL = 975
+
 if CALIBRATION:
     PROFILING = False
 
@@ -29,10 +34,7 @@ DISABLE_LIGHTSLEEP = False
 DISABLE_DEEPSLEEP = False
 #DISABLE_DEEPSLEEP = True
 
-#ensure odd number for median resampling
-NUM_SAMPLES = 21
-if PROFILING:
-    NUM_SAMPLES = 3
+NUM_SAMPLES = 1000 #from Atlas Scientific sample code
 
 #how long to wait between measurements
 SLEEP = 1800_000 # 30 minutes
@@ -57,9 +59,12 @@ MQTT_STATE_TOPIC = f'{name}/{NODE_ID}/status'
 #pybalboa temperature status published by https://github.com/mzakharo/pybalboa/blob/master/main.py
 MQTT_BALBOA_TOPIC = f'balboa/temp'
 
+
+TEMP_CELSIUS = "°C"
+
 ORP_PIN = const(1)
-BAT_PIN = const(3)
-PH_PIN = const(7)
+PH_PIN = const(3)
+BAT_PIN = const(7)
 
 def wifi(wdt, ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -87,13 +92,13 @@ def median(v):
     return l[len(v)//2+1]
 
 def my_go_deepsleep(duration):
-    Pin(ORP_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
-    Pin(PH_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
-    Pin(BAT_PIN, Pin.IN, Pin.PULL_UP, hold=True)
+    #Pin(ORP_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
+    #Pin(PH_PIN, Pin.IN, Pin.PULL_DOWN, hold=True)
+    #Pin(BAT_PIN, Pin.IN, Pin.PULL_UP, hold=True)
     #Pin(AMB_LIGHT, Pin.IN, Pin.PULL_UP, hold=True)
-    deepsleep(duration)
-    #from feathers2 import go_deepsleep
-    #go_deepsleep(duration)
+    #deepsleep(duration)
+    from feathers2 import go_deepsleep
+    go_deepsleep(duration)
 
 
 def my_sleep_ms(duration):
@@ -121,18 +126,6 @@ class State:
 def atc(ph, temp):
     return ph - 0.0032 * (ph - 7.0) * (temp - 25.0)
 
-
-def resample(array, func):
-    keys = array[0].keys()
-    out = {}
-    for key in keys:
-        out[key] = []
-    for v in array:
-        for key in keys:
-            out[key].append(v[key])
-    for key in keys:
-        out[key] = func(out[key])
-    return out
 
 
 def run(client, wdt):
@@ -207,6 +200,7 @@ def run(client, wdt):
         model = uos.uname().machine
         sha = s.check.get('sha', '')[:8]
 
+        expire = 3 * (SLEEP + SENSOR_CALIBRATE_SLEEP)  // 1000
         device =  {
                             'identifiers' : NODE_ID,
                             'name' : name,
@@ -225,7 +219,7 @@ def run(client, wdt):
             'device' : device,
             'value_template' : "{{ value_json.vbat }}",
             'force_update' : True,
-            'expire_after' : 3 * SLEEP // 1000,
+            'expire_after' : expire,
             }
         client.publish(t, json.dumps(m), qos=0, retain=True)
 
@@ -238,34 +232,35 @@ def run(client, wdt):
             'device' : device,
             'value_template' : "{{ value_json.orp }}",
             'force_update' : True,
-            'expire_after' : 3 * SLEEP // 1000,
+            'expire_after' : expire,
             }
         client.publish(t, json.dumps(m), qos=0, retain=True)
 
         t = f'homeassistant/sensor/{NODE_ID}/{name}_temp/config'
         m = {'device_class' : 'temperature',
-            'unit_of_measurement': "C",
+            'unit_of_measurement': TEMP_CELSIUS, 
             'name': f'{name} Temperature',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_temp',
             'device' : device,
             'value_template' : "{{ value_json.temp }}",
             'force_update' : True,
-            'expire_after' : 3 * SLEEP // 1000,
+            'expire_after' : expire,
             }
-        client.publish(t, json.dumps(m), qos=0, retain=True)
+        msg = json.dumps(m).encode('') #for unicode
+        client.publish(t, msg, qos=0, retain=True)
 
         t = f'homeassistant/sensor/{NODE_ID}/{name}_ph/config'
         m = {
-            'unit_of_measurement': "dB",
-            'name': f'{name} PH',
+            'unit_of_measurement': "pH",
+            'name': f'{name} pH',
             'icon' : 'mdi:ph',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_ph',
             'device' : device,
             'value_template' : "{{ value_json.ph }}",
             'force_update' : True,
-            'expire_after' : 3 * SLEEP // 1000,
+            'expire_after' : expire,
             }
         client.publish(t, json.dumps(m), qos=0, retain=True)
 
@@ -279,7 +274,7 @@ def run(client, wdt):
             'device' : device,
             'value_template' : "{{ value_json.fb_ppm }}",
             'force_update' : True,
-            'expire_after' : 3 * SLEEP // 1000,
+            'expire_after' : expire,
             }
         client.publish(t, json.dumps(m), qos=1, retain=True) #last one with qos=1 so that we can receive balboa temperature
 
@@ -295,6 +290,7 @@ def run(client, wdt):
 
     def measure():
         set_ldo2_power(True)
+        set_led(True)
         wdt.feed()
 
         #dummy read to lower light sleep current to 1.1ma from 2.4mA
@@ -304,36 +300,36 @@ def run(client, wdt):
         my_sleep_ms(SENSOR_CALIBRATE_SLEEP)
         wdt.feed()
 
-        samples = []
+        raw = dict(orp=[], vbat=[], ph=[])
         for i in range(NUM_SAMPLES):
-            raw = {}
-            orp = ao.read_uv() // 1000 - 1500
-            raw['orp'] = orp
-            vbat = ab.read_uv() // 1000 * 2
-            raw['vbat'] = vbat
-            phv = ap.read_uv() / 1e6
-            ph = (-5.6548 * phv) + 15.509
-            raw['ph'] = ph 
-            samples.append(raw)
-            if i != NUM_SAMPLES - 1:
-                my_sleep_ms(1_000)
-
+            raw['orp'].append(ao.read_uv())
+            raw['vbat'].append(ab.read_uv())
+            raw['ph'].append(ap.read_uv())
+            #if i != NUM_SAMPLES - 1:
+            #    my_sleep_ms(1_000)
         set_ldo2_power(False)
+        set_led(False)
         wdt.feed()
 
-        status = resample(samples, median)
-        if CALIBRATION:
-            status['_raw'] = samples
+        status = {key : median(vals) for key, vals in raw.items()}
+        status['orp'] = round(status['orp'] / 1000) - 1500 - ORP_CAL_OFFSET #from Atlas Scientific sample code
+        status['vbat'] = round(status['vbat'] / 1000 * 2) #custom voltage divider
+        status['ph_mv'] = round(status['ph'] / 1000)
 
-        #convert from float
-        status['orp'] = round(status['orp'])
-        status['vbat'] = round(status['vbat'])
+        # from Atlas Scientific sample code
+        if status['ph_mv'] > PH_MID_CAL:
+            status['ph'] = 7.0 - 3.0 / (PH_LOW_CAL - PH_MID_CAL) * (status['ph_mv'] - PH_MID_CAL)
+        else:
+            status['ph'] = 7.0 - 3.0 / (PH_MID_CAL - PH_HIGH_CAL) * (status['ph_mv'] - PH_MID_CAL)
 
         return status
 
+    #split measure() from publish() to allow for temperature to come in over mqtt
+
     def publish(status):
         #perform PH ATC (Automatic Temperature Compensation)
-        status['ph'] = atc(status['ph'], s.temp)
+        if not CALIBRATION:
+            status['ph'] = atc(status['ph'], s.temp)
         #estimate free chlorine ppm
         fb = tfmicro.fc(status['orp'], status['ph'])
         if fb is None:
@@ -341,13 +337,15 @@ def run(client, wdt):
         fb *= 2.25 #chlorine to bromine
         status['fb_ppm'] = fb
         status['temp'] = s.temp
-        client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1)
+        
+        #qos=1 ensures we complete transaction before going to sleep
+        client.publish(MQTT_STATE_TOPIC, json.dumps(status), qos=1) 
 
     while True:
 
         if not s.measured:
             status = measure()
-            mqtt()
+            mqtt() #connect MQTT and receive temperature, OTA commands
             publish(status)
             #mark success
             s.measured = True
@@ -364,6 +362,7 @@ def run(client, wdt):
         if not DISABLE_DEEPSLEEP:
             my_go_deepsleep(SLEEP)
 
+        #only get here for debugging
         print('done')
         s = State()
         client.disconnect()
