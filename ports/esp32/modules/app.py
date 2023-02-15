@@ -14,7 +14,7 @@ import tfmicro #custom user module for tflite-micro models
 #Calibration constants 
 
 #ORP Probe
-ORP_CAL_OFFSET = 25
+ORP_CAL_OFFSET = 21
 
 #PH Probe
 PH_MID_CAL = 1530
