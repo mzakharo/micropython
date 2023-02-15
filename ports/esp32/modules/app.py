@@ -339,7 +339,7 @@ def run(client, wdt):
     def publish(status):
         #perform PH ATC (Automatic Temperature Compensation)
         if not CALIBRATION:
-            status['ph'] = round(atc(status['ph'], s.temp), 1)
+            status['ph'] = round(atc(status['ph'], s.temp), 2)
         #estimate free chlorine ppm
         fb = tfmicro.fc(status['orp'], status['ph'])
         if fb is None:
