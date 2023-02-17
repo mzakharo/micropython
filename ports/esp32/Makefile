@@ -3,13 +3,13 @@
 # This is a simple, convenience wrapper around idf.py (which uses cmake).
 
 # Select the board to build for, defaulting to GENERIC.
-BOARD ?= GENERIC
+BOARD ?= UM_FEATHERS2
 
 # If the build directory is not given, make it reflect the board name.
 BUILD ?= build-$(BOARD)
 
 # Device serial settings.
-PORT ?= /dev/ttyUSB0
+PORT ?= /dev/ttyACM0
 BAUD ?= 460800
 
 PYTHON ?= python3

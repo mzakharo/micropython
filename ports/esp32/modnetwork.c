@@ -35,6 +35,7 @@
 
 #include "py/runtime.h"
 #include "py/mperrno.h"
+#include "py/objstr.h"
 #include "shared/netutils/netutils.h"
 #include "modnetwork.h"
 
@@ -49,6 +50,117 @@
 #endif
 
 #define MODNETWORK_INCLUDE_CONSTANTS (1)
+
+
+
+struct wlan_frame {
+	uint16_t	fc;
+	uint16_t	duration;
+	uint8_t		addr1[6];
+	uint8_t		addr2[6];
+	uint8_t		addr3[6];
+	uint16_t	seq;
+	union {
+		uint16_t		qos;
+		uint8_t			addr4[6];
+		struct {
+			uint16_t	qos;
+			uint32_t	ht;
+		} __attribute__ ((packed)) ht;
+		struct {
+			uint8_t		addr4[6];
+			uint16_t	qos;
+			uint32_t	ht;
+		} __attribute__ ((packed)) addr4_qos_ht;
+	} u;
+} __attribute__ ((packed));
+#define le16toh(x)		(x)
+
+#define WLAN_FRAME_FC_TYPE_MASK		0x000C
+#define WLAN_FRAME_FC_STYPE_MASK	0x00F0
+
+#define WLAN_FRAME_FC_MASK		(WLAN_FRAME_FC_TYPE_MASK | WLAN_FRAME_FC_STYPE_MASK)
+
+#define WLAN_FRAME_TYPE(_fc)		((_fc & WLAN_FRAME_FC_TYPE_MASK) >> 2)
+#define WLAN_FRAME_FC(_type, _stype)	((((_type) << 2) | ((_stype) << 4)) & WLAN_FRAME_FC_MASK)
+#define WLAN_FRAME_TYPE_MGMT		0x0
+
+
+#define WLAN_FRAME_IS_MGMT(_fc)		(WLAN_FRAME_TYPE(_fc) == WLAN_FRAME_TYPE_MGMT)
+#define WLAN_FRAME_PROBE_REQ		WLAN_FRAME_FC(WLAN_FRAME_TYPE_MGMT, 0x4)
+#define WLAN_MAC_LEN		6
+
+
+STATIC mp_obj_t callback = NULL;
+STATIC mp_obj_t mac;
+
+static void wifi_sniffer_cb(void *recv_buf, wifi_promiscuous_pkt_type_t type)
+{
+    wifi_promiscuous_pkt_t *sniffer = (wifi_promiscuous_pkt_t *)recv_buf;
+    if (type == WIFI_PKT_MGMT) {
+    	struct wlan_frame* wh = (struct wlan_frame*) sniffer->payload;
+        uint16_t fc = le16toh(wh->fc);
+        uint16_t wlan_type = (fc & WLAN_FRAME_FC_MASK);
+	uint16_t len = sniffer->rx_ctrl.sig_len;
+    	//ESP_LOGE("network", "fc %d flawn_type %d, len=%d", fc, wlan_type, len);
+        if (WLAN_FRAME_IS_MGMT(fc) && wlan_type == WLAN_FRAME_PROBE_REQ) {
+            uint8_t* ta = wh->addr2;
+    	    //ESP_LOGE("network", "ta %x:%x:%x:%x:%x:%x", ta[0], ta[1], ta[2], ta[3], ta[4], ta[5]);
+	    
+	    ///crashes if created here
+	    //mp_obj_t mac = mp_obj_new_bytes(ta, WLAN_MAC_LEN);
+	    
+	    mp_obj_str_t * mac_p  =  (mp_obj_str_t *) mac;
+	    mempcpy((void *)mac_p->data, ta, WLAN_MAC_LEN);
+
+	    if (callback != NULL) {
+            	mp_sched_schedule(callback, mac);
+		//crashes
+	    	//mp_call_function_1_protected(callback, mac);
+	    }
+        }
+    }
+}
+
+STATIC mp_obj_t esp_promiscuous_enable(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+    enum { ARG_callback};
+    static const mp_arg_t allowed_args[] = {
+        { MP_QSTR_callback, MP_ARG_OBJ, {.u_obj = mp_const_none} },
+    };
+    // parse args
+    mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
+    mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
+    callback = args[ARG_callback].u_obj;
+
+    byte ta[6];
+    mac = mp_obj_new_bytes(ta, WLAN_MAC_LEN);
+
+    const wifi_promiscuous_filter_t filt = {
+			.filter_mask = WIFI_EVENT_MASK_AP_PROBEREQRECVED
+    };
+    ESP_ERROR_CHECK(esp_wifi_set_promiscuous_filter(&filt)); //set filter mask
+
+    esp_wifi_set_promiscuous_rx_cb(wifi_sniffer_cb);
+    esp_wifi_set_promiscuous(true);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_KW(esp_promiscuous_enable_obj, 0, esp_promiscuous_enable);
+
+STATIC mp_obj_t esp_promiscuous_disable() {
+    esp_wifi_set_promiscuous(false);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp_promiscuous_disable_obj, esp_promiscuous_disable);
+
+STATIC mp_obj_t esp_set_channel(mp_obj_t ch_in) {
+    uint8_t ch = mp_obj_get_int(ch_in);
+    esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE);
+    esp_wifi_get_channel(&ch, WIFI_SECOND_CHAN_NONE);
+    return MP_OBJ_NEW_SMALL_INT(ch);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp_set_channel_obj, esp_set_channel);
+
+
 
 NORETURN void esp_exceptions_helper(esp_err_t e) {
     switch (e) {
@@ -225,6 +337,11 @@ STATIC const mp_rom_map_elem_t mp_module_network_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_network) },
     { MP_ROM_QSTR(MP_QSTR___init__), MP_ROM_PTR(&esp_initialize_obj) },
 
+    { MP_ROM_QSTR(MP_QSTR_promiscuous_enable), MP_ROM_PTR(&esp_promiscuous_enable_obj) },
+    { MP_ROM_QSTR(MP_QSTR_promiscuous_disable), MP_ROM_PTR(&esp_promiscuous_disable_obj) },
+    { MP_ROM_QSTR(MP_QSTR_set_channel), MP_ROM_PTR(&esp_set_channel_obj) },
+
+
     #if MICROPY_PY_NETWORK_WLAN
     { MP_ROM_QSTR(MP_QSTR_WLAN), MP_ROM_PTR(&get_wlan_obj) },
     #endif
@@ -244,7 +361,6 @@ STATIC const mp_rom_map_elem_t mp_module_network_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_MODE_11B), MP_ROM_INT(WIFI_PROTOCOL_11B) },
     { MP_ROM_QSTR(MP_QSTR_MODE_11G), MP_ROM_INT(WIFI_PROTOCOL_11G) },
     { MP_ROM_QSTR(MP_QSTR_MODE_11N), MP_ROM_INT(WIFI_PROTOCOL_11N) },
-    { MP_ROM_QSTR(MP_QSTR_MODE_LR), MP_ROM_INT(WIFI_PROTOCOL_LR) },
 
     { MP_ROM_QSTR(MP_QSTR_AUTH_OPEN), MP_ROM_INT(WIFI_AUTH_OPEN) },
     { MP_ROM_QSTR(MP_QSTR_AUTH_WEP), MP_ROM_INT(WIFI_AUTH_WEP) },
@@ -260,8 +376,7 @@ STATIC const mp_rom_map_elem_t mp_module_network_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_AUTH_MAX), MP_ROM_INT(WIFI_AUTH_MAX) },
     #endif
 
-    #if MICROPY_PY_NETWORK_LAN
-    { MP_ROM_QSTR(MP_QSTR_PHY_LAN8710), MP_ROM_INT(PHY_LAN8710) },
+    #if (ESP_IDF_VERSION_MAJOR == 4) && (ESP_IDF_VERSION_MINOR >= 1) && (CONFIG_IDF_TARGET_ESP32)
     { MP_ROM_QSTR(MP_QSTR_PHY_LAN8720), MP_ROM_INT(PHY_LAN8720) },
     { MP_ROM_QSTR(MP_QSTR_PHY_IP101), MP_ROM_INT(PHY_IP101) },
     { MP_ROM_QSTR(MP_QSTR_PHY_RTL8201), MP_ROM_INT(PHY_RTL8201) },
@@ -269,20 +384,6 @@ STATIC const mp_rom_map_elem_t mp_module_network_globals_table[] = {
     #if ESP_IDF_VERSION_MINOR >= 3
     // PHY_KSZ8041 is new in ESP-IDF v4.3
     { MP_ROM_QSTR(MP_QSTR_PHY_KSZ8041), MP_ROM_INT(PHY_KSZ8041) },
-    #endif
-    #if ESP_IDF_VERSION_MINOR >= 4
-    // PHY_KSZ8081 is new in ESP-IDF v4.4
-    { MP_ROM_QSTR(MP_QSTR_PHY_KSZ8081), MP_ROM_INT(PHY_KSZ8081) },
-    #endif
-
-    #if CONFIG_ETH_SPI_ETHERNET_KSZ8851SNL
-    { MP_ROM_QSTR(MP_QSTR_PHY_KSZ8851SNL), MP_ROM_INT(PHY_KSZ8851SNL) },
-    #endif
-    #if CONFIG_ETH_SPI_ETHERNET_DM9051
-    { MP_ROM_QSTR(MP_QSTR_PHY_DM9051), MP_ROM_INT(PHY_DM9051) },
-    #endif
-    #if CONFIG_ETH_SPI_ETHERNET_W5500
-    { MP_ROM_QSTR(MP_QSTR_PHY_W5500), MP_ROM_INT(PHY_W5500) },
     #endif
 
     { MP_ROM_QSTR(MP_QSTR_ETH_INITIALIZED), MP_ROM_INT(ETH_INITIALIZED)},
@@ -311,7 +412,3 @@ const mp_obj_module_t mp_module_network = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&mp_module_network_globals,
 };
-
-// Note: This port doesn't define MICROPY_PY_NETWORK so this will not conflict
-// with the common implementation provided by extmod/modnetwork.c.
-MP_REGISTER_MODULE(MP_QSTR_network, mp_module_network);
