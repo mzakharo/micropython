@@ -26,3 +26,4 @@ if len(sys.argv) == 3:
 else:
     publish.single(f'{config.NAME}/{NODE_ID}/ota/cmd', '', qos=1, retain=True, hostname=secrets.MQTT_SERVER)
     publish.single(f'{config.NAME}/{NODE_ID}/ota/fw', '', qos=1, retain=True, hostname=secrets.MQTT_SERVER)
+    print(f'fw for {NODE_ID} cleared')
