@@ -26,7 +26,7 @@ BAT_LOW = 3000
 BAT_HIGH = 4200
 
 #pH+ORP->FC model cal
-ORP_PH_MODEL_OFFSET = 200
+ORP_PH_MODEL_OFFSET = 1.15
 
 #DEBUG config constants
 
@@ -349,11 +349,12 @@ def run(client, wdt):
         if not CALIBRATION:
             status['ph'] = round(atc(status['ph'], s.temp), 2)
         #estimate free chlorine ppm
-        fb = tfmicro.fc(status['orp'] + ORP_PH_MODEL_OFFSET, status['ph'])
+        fb = tfmicro.fc(status['orp'], status['ph'])
         if fb is None:
             fb = -1.0
-        fb *= 2.25 #chlorine to bromine
-        status['fb_ppm'] = fb
+        fb *= 2.25 #free chlorine to total bromine
+        fb += ORP_PH_MODEL_OFFSET #match model with the lab
+        status['fb_ppm'] = round(fb, 2)
         status['temp'] = s.temp
         
         #qos=1 ensures we complete transaction before going to sleep

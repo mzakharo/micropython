@@ -26,11 +26,12 @@ make deploy
 # Publish firmware for OTA:
 ```
 python3 publish_fw.py <NODE_ID>  build-UM_FEATHERS2/micropython.bin 
+python3 publish_fw.py 84f7373c0e build-UM_FEATHERS2/micropython.bin 
 ```
 
 # Get OTA logs:
 ```
-python3 logs.py <NODE_ID>
+python3 logs.py +
 ```
 
 # To access webrepl:

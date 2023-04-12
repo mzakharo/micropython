@@ -8,7 +8,7 @@
 extern "C" {
 #include <tfmicromodule.h>
 
-const int tensor_arena_size = 3200;
+const int tensor_arena_size = 5000;
 uint8_t tensor_arena[tensor_arena_size];
 
 //Function that converts ORP & PH to Free Chlorine (FC)
