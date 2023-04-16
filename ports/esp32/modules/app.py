@@ -25,8 +25,11 @@ PH_HIGH_CAL = 1042
 BAT_LOW = 3000
 BAT_HIGH = 4200
 
-#pH+ORP->FC model cal
-ORP_PH_MODEL_OFFSET = 1.15
+# free chlorine to Total Bromine
+FC_TO_TOTAL_BROMINE = 2.25
+
+# Sanitizer Model offset
+ORP_PH_MODEL_OFFSET = 0.0
 
 #DEBUG config constants
 
@@ -282,7 +285,7 @@ def run(client, wdt):
         t = f'homeassistant/sensor/{NODE_ID}/{name}_fb_ppm/config'
         m = {
             'unit_of_measurement': 'ppm',
-            'name': f'{name} Free Bromine',
+            'name': f'{name} Total Bromine',
             'icon' : 'mdi:chemical-weapon',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_fb_ppm',
@@ -349,12 +352,12 @@ def run(client, wdt):
         if not CALIBRATION:
             status['ph'] = round(atc(status['ph'], s.temp), 2)
         #estimate free chlorine ppm
-        fb = tfmicro.fc(status['orp'], status['ph'])
-        if fb is None:
-            fb = -1.0
-        fb *= 2.25 #free chlorine to total bromine
-        fb += ORP_PH_MODEL_OFFSET #match model with the lab
-        status['fb_ppm'] = round(fb, 2)
+        fc = tfmicro.fc(status['orp'], status['ph'])
+        if fc is None:
+            fc = -1.0
+        fc *= FC_TO_TOTAL_BROMINE
+        fc += ORP_PH_MODEL_OFFSET
+        status['fb_ppm'] = round(fc, 2)
         status['temp'] = s.temp
         
         #qos=1 ensures we complete transaction before going to sleep
