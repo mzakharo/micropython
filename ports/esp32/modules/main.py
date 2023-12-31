@@ -2,7 +2,7 @@ from machine import WDT
 class FakeWDT:
     def __init__(self, timeout):pass
     def feed(self): pass
-wdt = WDT(timeout=70000)
+wdt = WDT(timeout=120_000)
 #wdt = FakeWDT(timeout=70000)
 
 import uos
