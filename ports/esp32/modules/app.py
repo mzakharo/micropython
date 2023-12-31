@@ -55,12 +55,12 @@ DISABLE_DEEPSLEEP = False
 NUM_SAMPLES = 1000 #from Atlas Scientific sample code
 
 #how long to wait between measurements
-SLEEP = 1800_000 # 30 minutes
+SLEEP = 800_000
 if PROFILING or CALIBRATION:
     SLEEP = 5_000
 
-#how long to wait for sensor to calibrate
-SENSOR_CALIBRATE_SLEEP = 60_000
+#how long to wait for sensor to calibrate after deep sleep
+SENSOR_CALIBRATE_SLEEP = 100_000
 if PROFILING:
     SENSOR_CALIBRATE_SLEEP = 3_000
 
@@ -231,7 +231,7 @@ def run(client, wdt):
         m = {'device_class' : 'battery',
             'unit_of_measurement': '%',
             'icon' : 'mdi:battery',
-            'name': f'{name} Battery',
+            'name': f'Battery',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_battery',
             'device' : device,
@@ -244,7 +244,7 @@ def run(client, wdt):
         t = f'homeassistant/sensor/{NODE_ID}/{name}_orp/config'
         m = {'device_class' : 'voltage',
             'unit_of_measurement': 'mV',
-            'name': f'{name} ORP',
+            'name': f'ORP',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_orp',
             'device' : device,
@@ -257,7 +257,7 @@ def run(client, wdt):
         t = f'homeassistant/sensor/{NODE_ID}/{name}_temp/config'
         m = {'device_class' : 'temperature',
             'unit_of_measurement': TEMP_CELSIUS, 
-            'name': f'{name} Temperature',
+            'name': f'Temperature',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_temp',
             'device' : device,
@@ -271,7 +271,7 @@ def run(client, wdt):
         t = f'homeassistant/sensor/{NODE_ID}/{name}_ph/config'
         m = {
             'unit_of_measurement': "pH",
-            'name': f'{name} pH',
+            'name': f'pH',
             'icon' : 'mdi:ph',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_ph',
@@ -285,7 +285,7 @@ def run(client, wdt):
         t = f'homeassistant/sensor/{NODE_ID}/{name}_fb_ppm/config'
         m = {
             'unit_of_measurement': 'ppm',
-            'name': f'{name} Total Bromine',
+            'name': f'Total Bromine',
             'icon' : 'mdi:chemical-weapon',
             'state_topic': MQTT_STATE_TOPIC,
             'unique_id' : f'ESPsensor{NODE_ID}_fb_ppm',
