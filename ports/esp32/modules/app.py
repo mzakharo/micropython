@@ -311,6 +311,7 @@ def run(client, wdt):
         client.connect()
         client.subscribe(MQTT_OTA_CMD_TOPIC)
         client.subscribe(MQTT_BALBOA_TOPIC) # for temperature
+        client.subscribe(MQTT_SLEEP_TOPIC)
         discovery(client)
         return client
 
