@@ -58,6 +58,14 @@ Example:
 python3 publish_fw.py 84f7373c0e
 ```
 
+# Publish/clear sleep duration for calibration:
+```
+python3 calibrate.py 2000
+Clear:
+python3 calibrate.py
+```
+
+
 
 
 

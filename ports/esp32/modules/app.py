@@ -77,6 +77,8 @@ MQTT_STATE_TOPIC = f'{name}/{NODE_ID}/status'
 #pybalboa temperature status published by https://github.com/mzakharo/pybalboa/blob/master/main.py
 MQTT_BALBOA_TOPIC = f'balboa/temp'
 
+MQTT_SLEEP_TOPIC = f'{name}/sleep'
+
 
 TEMP_CELSIUS = "°C"
 
@@ -133,6 +135,7 @@ class State:
         self.check_sha = b''
         self.check = {}
         self.temp = 40.0
+        self.sleep = SLEEP
         try:
             with open('check_sha.txt', 'r') as f:
                 self.check = json.loads(f.read())
@@ -212,6 +215,12 @@ def run(client, wdt):
         elif topic == MQTT_BALBOA_TOPIC:
             s.temp = float(msg)
             #print('Balboa temp %f' % s.temp)
+        elif topic == MQTT_SLEEP_TOPIC:
+            try:
+                s.sleep = int(msg)
+                print('New sleep duration %d' % s.sleep)
+            except Exception as e:
+                print(e)
 
 
     def discovery(client):
@@ -382,7 +391,7 @@ def run(client, wdt):
             continue
 
         if not DISABLE_DEEPSLEEP:
-            my_go_deepsleep(SLEEP)
+            my_go_deepsleep(s.sleep)
 
         #only get here for debugging
         print('done')
