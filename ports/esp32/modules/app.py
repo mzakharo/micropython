@@ -52,17 +52,19 @@ DISABLE_DEEPSLEEP = False
 
 NUM_SAMPLES = 1000 #from Atlas Scientific sample code
 
-#how long to wait between measurements
+#how long to sleep after measurement
 SLEEP = 900_000
 if PROFILING or CALIBRATION:
     SLEEP = 5_000
 
 #how long to wait for sensor to settle after power on from deep sleep
-SENSOR_CALIBRATE_SLEEP = 100_000
-SENSOR_CALIBRATE_SLEEP_TIMES = 9
+#NOTE: for calibration of ORP 200 solution, minimum time to settle is 60s
+
+SENSOR_SETTLE_SLEEP = 100_000
+SENSOR_SETTLE_SLEEP_TIMES = 9
 if PROFILING:
-    SENSOR_CALIBRATE_SLEEP = 3_000
-    SENSOR_CALIBRATE_SLEEP_TIMES = 1
+    SENSOR_SETTLE_SLEEP = 3_000
+    SENSOR_SETTLE_SLEEP_TIMES = 1
 
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
@@ -136,6 +138,7 @@ class State:
         self.check = {}
         self.temp = 40.0
         self.sleep = SLEEP
+        self.settle = SENSOR_SETTLE_SLEEP
         try:
             with open('check_sha.txt', 'r') as f:
                 self.check = json.loads(f.read())
@@ -218,6 +221,7 @@ def run(client, wdt):
         elif topic == MQTT_SLEEP_TOPIC:
             try:
                 s.sleep = int(msg)
+                s.settle = s.sleep
                 print('New sleep duration %d' % s.sleep)
             except Exception as e:
                 print(e)
@@ -227,7 +231,7 @@ def run(client, wdt):
         model = uos.uname().machine
         sha = s.check.get('sha', '')[:8]
 
-        expire = 3 * (SLEEP + SENSOR_CALIBRATE_SLEEP * SENSOR_CALIBRATE_SLEEP_TIMES)  // 1000
+        expire = 3 * (SLEEP + SENSOR_SETTLE_SLEEP * SENSOR_SETTLE_SLEEP_TIMES)  // 1000
         device =  {
                             'identifiers' : NODE_ID,
                             'name' : name,
@@ -324,8 +328,9 @@ def run(client, wdt):
         #dummy read to lower light sleep current to 1.1ma from 2.4mA
         #Can anyone explain THIS????
         ao.read_uv()
-        for _ in range(SENSOR_CALIBRATE_SLEEP_TIMES):
-            my_sleep_ms(SENSOR_CALIBRATE_SLEEP)
+
+        for _ in range(SENSOR_SETTLE_SLEEP_TIMES):
+            my_sleep_ms(s.settle)
             wdt.feed()
 
         raw = dict(orp=[], vbat=[], ph=[])
