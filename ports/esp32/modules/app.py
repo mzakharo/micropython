@@ -58,9 +58,11 @@ if PROFILING or CALIBRATION:
     SLEEP = 5_000
 
 #how long to wait for sensor to settle after power on from deep sleep
-SENSOR_CALIBRATE_SLEEP = 900_000
+SENSOR_CALIBRATE_SLEEP = 100_000
+SENSOR_CALIBRATE_SLEEP_TIMES = 9
 if PROFILING:
     SENSOR_CALIBRATE_SLEEP = 3_000
+    SENSOR_CALIBRATE_SLEEP_TIMES = 1
 
 #sleep due to wlan connect error
 SLEEP_FAST = 60_000
@@ -225,7 +227,7 @@ def run(client, wdt):
         model = uos.uname().machine
         sha = s.check.get('sha', '')[:8]
 
-        expire = 3 * (SLEEP + SENSOR_CALIBRATE_SLEEP)  // 1000
+        expire = 3 * (SLEEP + SENSOR_CALIBRATE_SLEEP * SENSOR_CALIBRATE_SLEEP_TIMES)  // 1000
         device =  {
                             'identifiers' : NODE_ID,
                             'name' : name,
@@ -322,9 +324,9 @@ def run(client, wdt):
         #dummy read to lower light sleep current to 1.1ma from 2.4mA
         #Can anyone explain THIS????
         ao.read_uv()
-
-        my_sleep_ms(SENSOR_CALIBRATE_SLEEP)
-        wdt.feed()
+        for _ in range(SENSOR_CALIBRATE_SLEEP_TIMES):
+            my_sleep_ms(SENSOR_CALIBRATE_SLEEP)
+            wdt.feed()
 
         raw = dict(orp=[], vbat=[], ph=[])
         for i in range(NUM_SAMPLES):
