@@ -28,8 +28,6 @@ BAT_HIGH = 4200
 # free chlorine to Total Bromine
 FC_TO_TOTAL_BROMINE = 2.25
 
-# Sanitizer Model offset
-ORP_PH_MODEL_OFFSET = 0.0
 
 #DEBUG config constants
 
@@ -55,12 +53,12 @@ DISABLE_DEEPSLEEP = False
 NUM_SAMPLES = 1000 #from Atlas Scientific sample code
 
 #how long to wait between measurements
-SLEEP = 800_000
+SLEEP = 900_000
 if PROFILING or CALIBRATION:
     SLEEP = 5_000
 
-#how long to wait for sensor to calibrate after deep sleep
-SENSOR_CALIBRATE_SLEEP = 100_000
+#how long to wait for sensor to settle after power on from deep sleep
+SENSOR_CALIBRATE_SLEEP = 900_000
 if PROFILING:
     SENSOR_CALIBRATE_SLEEP = 3_000
 
@@ -366,7 +364,6 @@ def run(client, wdt):
         if fc is None:
             fc = -1.0
         fc *= FC_TO_TOTAL_BROMINE
-        fc += ORP_PH_MODEL_OFFSET
         status['fb_ppm'] = round(fc, 2)
         status['temp'] = s.temp
         
