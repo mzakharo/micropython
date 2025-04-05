@@ -9,7 +9,7 @@
 # Build directories
 build/
 build-*/
-docs/genrst/
+_build/
 
 # Test failure outputs and intermediate artefacts
 tests/results/*

@@ -1,16 +1,9 @@
 .. _esp32_quickref:
 
-Quick reference for the ESP32
 =============================
 
-.. image:: img/esp32.jpg
-    :alt: ESP32 board
-    :width: 640px
 
-The Espressif ESP32 Development Board (image attribution: Adafruit).
 
-Below is a quick reference for ESP32-based boards.  If it is your first time
-working with this board it may be useful to get an overview of the microcontroller:
 
 .. toctree::
    :maxdepth: 1
@@ -24,32 +17,20 @@ supported by MicroPython, with some differences in functionality between them.
 Installing MicroPython
 ----------------------
 
-See the corresponding section of tutorial: :ref:`esp32_intro`. It also includes
-a troubleshooting subsection.
 
-General board control
 ---------------------
 
-The MicroPython REPL is on UART0 (GPIO1=TX, GPIO3=RX) at baudrate 115200.
-Tab-completion is useful to find out what methods an object has.
-Paste mode (ctrl-E) is useful to paste a large slab of Python code into
-the REPL.
 
 The :mod:`machine` module::
 
     import machine
 
-    machine.freq()          # get the current frequency of the CPU
-    machine.freq(240000000) # set the CPU frequency to 240 MHz
 
 The :mod:`esp` module::
 
     import esp
 
-    esp.osdebug(None)       # turn off vendor O/S debugging messages
-    esp.osdebug(0)          # redirect vendor O/S debugging messages to UART(0)
 
-    # low level methods to interact with flash storage
     esp.flash_size()
     esp.flash_user_start()
     esp.flash_erase(sector_no)
@@ -60,12 +41,7 @@ The :mod:`esp32` module::
 
     import esp32
 
-    esp32.raw_temperature() # read the internal temperature of the MCU, in Fahrenheit
-    esp32.ULP()             # access to the Ultra-Low-Power Co-processor, not on ESP32C3/C6
 
-Note that the temperature sensor in the ESP32 will typically read higher than
-ambient due to the IC getting warm while it runs.  This effect can be minimised
-by reading the temperature sensor immediately after waking up from sleep.
 
 ESP32C3, ESP32C6, ESP32S2, and ESP32S3 also have an internal temperature sensor available.
 It is implemented a bit differently to the ESP32 and returns the temperature in
@@ -96,7 +72,6 @@ The :class:`network.WLAN` class in the :mod:`network` module::
     ap.config(max_clients=10)             # set how many clients can connect to the network
     ap.active(True)                       # activate the interface
 
-A useful function for connecting to your local WiFi network is::
 
     def do_connect():
         import machine, network
@@ -261,17 +236,9 @@ Use the :mod:`time <time>` module::
 
     import time
 
-    time.sleep(1)           # sleep for 1 second
-    time.sleep_ms(500)      # sleep for 500 milliseconds
-    time.sleep_us(10)       # sleep for 10 microseconds
-    start = time.ticks_ms() # get millisecond counter
-    delta = time.ticks_diff(time.ticks_ms(), start) # compute time difference
 
-Timers
+定时器
 ------
-
-The ESP32 port has four hardware timers. Use the :ref:`machine.Timer <machine.Timer>` class
-with a timer ID from 0 to 3 (inclusive)::
 
     from machine import Timer
 
@@ -281,36 +248,19 @@ with a timer ID from 0 to 3 (inclusive)::
     tim1 = Timer(1)
     tim1.init(period=2000, mode=Timer.PERIODIC, callback=lambda t:print(1))
 
-The period is in milliseconds.
 
 Virtual timers are not currently supported on this port.
 
 .. _Pins_and_GPIO:
 
-Pins and GPIO
 -------------
 
-Use the :ref:`machine.Pin <machine.Pin>` class::
 
     from machine import Pin
 
-    p0 = Pin(0, Pin.OUT)    # create output pin on GPIO0
-    p0.on()                 # set pin to "on" (high) level
-    p0.off()                # set pin to "off" (low) level
-    p0.value(1)             # set pin to on/high
 
-    p2 = Pin(2, Pin.IN)     # create input pin on GPIO2
-    print(p2.value())       # get value, 0 or 1
 
-    p4 = Pin(4, Pin.IN, Pin.PULL_UP) # enable internal pull-up resistor
-    p5 = Pin(5, Pin.OUT, value=1) # set pin high on creation
-    p6 = Pin(6, Pin.OUT, drive=Pin.DRIVE_3) # set maximum drive strength
 
-Available Pins are from the following ranges (inclusive): 0-19, 21-23, 25-27, 32-39.
-These correspond to the actual GPIO pin numbers of ESP32 chip.  Note that many
-end-user boards use their own adhoc pin numbering (marked e.g. D0, D1, ...).
-For mapping between board logical pins and physical chip pins consult your board
-documentation.
 
 Four drive strengths are supported, using the ``drive`` keyword argument to the
 ``Pin()`` constructor or ``Pin.init()`` method, with different corresponding
@@ -331,12 +281,8 @@ any configuration changes and then immediately reapply the hold.
 
 Notes:
 
-* Pins 1 and 3 are REPL UART TX and RX respectively
 
-* Pins 6, 7, 8, 11, 16, and 17 are used for connecting the embedded flash,
-  and are not recommended for other uses
 
-* Pins 34-39 are input only, and also do not have internal pull-up resistors
 
 * See :ref:`Deep_sleep_Mode` for a discussion of pin behaviour during sleep
 
@@ -372,14 +318,8 @@ tx     1      10     17
 rx     3      9      16
 =====  =====  =====  =====
 
-PWM (pulse width modulation)
 ----------------------------
 
-PWM can be enabled on all output-enabled pins. The base frequency can
-range from 1Hz to 40MHz but there is a tradeoff; as the base frequency
-*increases* the duty resolution *decreases*. See
-`LED Control <https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/ledc.html>`_
-for more details.
 
 Use the :ref:`machine.PWM <machine.PWM>` class::
 
@@ -477,52 +417,6 @@ ESP32-specific ADC class method reference:
       - ``ADC.ATTN_11DB``: 11dB attenuation (150mV - 2450mV)
 
 .. Warning::
-   Note that the absolute maximum voltage rating for input pins is 3.6V. Going
-   near to this boundary risks damage to the IC!
-
-.. method:: ADC.read_uv()
-
-    This method uses the known characteristics of the ADC and per-package eFuse
-    values - set during manufacture - to return a calibrated input voltage
-    (before attenuation) in microvolts. The returned value has only millivolt
-    resolution (i.e., will always be a multiple of 1000 microvolts).
-
-    The calibration is only valid across the linear range of the ADC. In
-    particular, an input tied to ground will read as a value above 0 microvolts.
-    Within the linear range, however, more accurate and consistent results will
-    be obtained than using `read_u16()` and scaling the result with a constant.
-
-The ESP32 port also supports the :ref:`machine.ADC <machine.ADCBlock>` API:
-
-.. class:: ADCBlock(id, *, bits)
-
-    Return the ADC block object with the given ``id`` (1 or 2) and initialize
-    it to the specified resolution (9 to 12-bits depending on the ESP32 series)
-    or the highest supported resolution if not specified.
-
-.. method:: ADCBlock.connect(pin)
-            ADCBlock.connect(channel)
-            ADCBlock.connect(channel, pin)
-
-    Return the ``ADC`` object for the specified ADC pin or channel number.
-    Arbitrary connection of ADC channels to GPIO is not supported and so
-    specifying a pin that is not connected to this block, or specifying a
-    mismatched channel and pin, will raise an exception.
-
-Legacy methods:
-
-.. method:: ADC.read()
-
-    This method returns the raw ADC value ranged according to the resolution of
-    the block, e.g., 0-4095 for 12-bit resolution.
-
-.. method:: ADC.atten(atten)
-
-    Equivalent to ``ADC.init(atten=atten)``.
-
-.. method:: ADC.width(bits)
-
-    Equivalent to ``ADC.block().init(bits=bits)``.
 
 For compatibility, the ``ADC`` object also provides constants matching the
 supported ADC resolutions:
@@ -533,48 +427,22 @@ supported ADC resolutions:
   - ``ADC.WIDTH_12BIT`` = 12
 
 
-Software SPI bus
 ----------------
 
-Software SPI (using bit-banging) works on all pins, and is accessed via the
-:ref:`machine.SoftSPI <machine.SoftSPI>` class::
 
     from machine import Pin, SoftSPI
 
-    # construct a SoftSPI bus on the given pins
-    # polarity is the idle state of SCK
-    # phase=0 means sample on the first edge of SCK, phase=1 means the second
     spi = SoftSPI(baudrate=100000, polarity=1, phase=0, sck=Pin(0), mosi=Pin(2), miso=Pin(4))
 
-    spi.init(baudrate=200000) # set the baudrate
 
-    spi.read(10)            # read 10 bytes on MISO
-    spi.read(10, 0xff)      # read 10 bytes while outputting 0xff on MOSI
 
-    buf = bytearray(50)     # create a buffer
-    spi.readinto(buf)       # read into the given buffer (reads 50 bytes in this case)
-    spi.readinto(buf, 0xff) # read into the given buffer and output 0xff on MOSI
 
-    spi.write(b'12345')     # write 5 bytes on MOSI
 
-    buf = bytearray(4)      # create a buffer
-    spi.write_readinto(b'1234', buf) # write to MOSI and read from MISO into the buffer
-    spi.write_readinto(buf, buf) # write buf to MOSI and read MISO back into buf
 
 .. Warning::
-   Currently *all* of ``sck``, ``mosi`` and ``miso`` *must* be specified when
-   initialising Software SPI.
 
-Hardware SPI bus
 ----------------
 
-There are two hardware SPI channels that allow faster transmission
-rates (up to 80Mhz). These may be used on any IO pins that support the
-required direction and are otherwise unused (see :ref:`Pins_and_GPIO`)
-but if they are not configured to their default pins then they need to
-pass through an extra layer of GPIO multiplexing, which can impact
-their reliability at high speeds. Hardware SPI channels are limited
-to 40MHz when used on pins other than the default ones listed below.
 
 =====  ===========  ============
 \      HSPI (id=1)   VSPI (id=2)
@@ -593,26 +461,17 @@ has the same methods as software SPI above::
     hspi = SPI(1, 10000000, sck=Pin(14), mosi=Pin(13), miso=Pin(12))
     vspi = SPI(2, baudrate=80000000, polarity=0, phase=0, bits=8, firstbit=0, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
 
-Software I2C bus
 ----------------
 
-Software I2C (using bit-banging) works on all output-capable pins, and is
-accessed via the :ref:`machine.SoftI2C <machine.SoftI2C>` class::
 
     from machine import Pin, SoftI2C
 
     i2c = SoftI2C(scl=Pin(5), sda=Pin(4), freq=100000)
 
-    i2c.scan()              # scan for devices
 
-    i2c.readfrom(0x3a, 4)   # read 4 bytes from device with address 0x3a
-    i2c.writeto(0x3a, '12') # write '12' to device with address 0x3a
 
-    buf = bytearray(10)     # create a buffer with 10 bytes
-    i2c.writeto(0x3a, buf)  # write the given buffer to the peripheral
 
 Hardware I2C bus
-----------------
 
 There are two hardware I2C peripherals with identifiers 0 and 1.  Any available
 output-capable pins can be used for SCL and SDA but the defaults are given
@@ -651,18 +510,12 @@ users is encouraged.  Based on this feedback, the I2S class API and implementati
 
 ESP32 has two I2S buses with id=0 and id=1
 
-Real time clock (RTC)
----------------------
 
 See :ref:`machine.RTC <machine.RTC>` ::
 
     from machine import RTC
 
     rtc = RTC()
-    rtc.datetime((2017, 8, 23, 0, 1, 12, 48, 0)) # set a specific date and
-                                                 # time, eg. 2017/8/23 1:12:48
-                                                 # the day-of-week value is ignored
-    rtc.datetime() # get date and time
 
 WDT (Watchdog timer)
 --------------------
@@ -680,18 +533,14 @@ See :ref:`machine.WDT <machine.WDT>`. ::
 Deep-sleep mode
 ---------------
 
-The following code can be used to sleep, wake and check the reset cause::
 
     import machine
 
-    # check if the device woke from a deep sleep
     if machine.reset_cause() == machine.DEEPSLEEP_RESET:
         print('woke from a deep sleep')
 
-    # put the device to sleep for 10 seconds
     machine.deepsleep(10000)
 
-Notes:
 
 * Calling ``deepsleep()`` without an argument will put the device to sleep
   indefinitely
@@ -756,7 +605,6 @@ See :ref:`machine.SDCard <machine.SDCard>`. ::
     vfs.umount('/sd')    # eject
 
 RMT
----
 
 The RMT is ESP32-specific and allows generation of accurate digital pulses with
 12.5ns resolution.  See :ref:`esp32.RMT <esp32.RMT>` for details.  Usage is::
@@ -769,23 +617,12 @@ The RMT is ESP32-specific and allows generation of accurate digital pulses with
     # The channel resolution is 100ns (1/(source_freq/clock_div)).
     r.write_pulses((1, 20, 2, 40), 0) # Send 0 for 100ns, 1 for 2000ns, 0 for 200ns, 1 for 4000ns
 
-OneWire driver
---------------
 
-The OneWire driver is implemented in software and works on all pins::
 
     from machine import Pin
     import onewire
 
-    ow = onewire.OneWire(Pin(12)) # create a OneWire bus on GPIO12
-    ow.scan()               # return a list of devices on the bus
-    ow.reset()              # reset the bus
-    ow.readbyte()           # read a byte
-    ow.writebyte(0x12)      # write a byte on the bus
-    ow.write('123')         # write bytes on the bus
-    ow.select_rom(b'12345678') # select a specific device by its ROM code
 
-There is a specific driver for DS18S20 and DS18B20 devices::
 
     import time, ds18x20
     ds = ds18x20.DS18X20(ow)
@@ -795,9 +632,6 @@ There is a specific driver for DS18S20 and DS18B20 devices::
     for rom in roms:
         print(ds.read_temp(rom))
 
-Be sure to put a 4.7k pull-up resistor on the data line.  Note that
-the ``convert_temp()`` method must be called each time you want to
-sample the temperature.
 
 NeoPixel and APA106 driver
 --------------------------
@@ -807,12 +641,6 @@ Use the ``neopixel`` and ``apa106`` modules::
     from machine import Pin
     from neopixel import NeoPixel
 
-    pin = Pin(0, Pin.OUT)   # set GPIO0 to output to drive NeoPixels
-    np = NeoPixel(pin, 8)   # create NeoPixel driver on GPIO0 for 8 pixels
-    np[0] = (255, 255, 255) # set the first pixel to white
-    np.write()              # write data to all pixels
-    r, g, b = np[0]         # get first pixel colour
-
 
 The APA106 driver extends NeoPixel, but internally uses a different colour order::
 
@@ -821,10 +649,6 @@ The APA106 driver extends NeoPixel, but internally uses a different colour order
     r, g, b = ap[0]
 
 .. Warning::
-   By default ``NeoPixel`` is configured to control the more popular *800kHz*
-   units. It is possible to use alternative timing to control other (typically
-   400kHz) devices by passing ``timing=0`` when constructing the
-   ``NeoPixel`` object.
 
 For low-level driving of a NeoPixel see `machine.bitstream`.
 This low-level driver uses an RMT channel by default.  To configure this see
@@ -832,7 +656,6 @@ This low-level driver uses an RMT channel by default.  To configure this see
 
 APA102 (DotStar) uses a different driver as it has an additional clock pin.
 
-Capacitive touch
 ----------------
 
 ESP32, ESP32-S2 and ESP32-S3 support capacitive touch via the ``TouchPad`` class
@@ -841,7 +664,6 @@ in the ``machine`` module::
     from machine import TouchPad, Pin
 
     t = TouchPad(Pin(14))
-    t.read()              # Returns a smaller number when touched
 
 ``TouchPad.read`` returns a value proportional to the capacitance between the
 pin and the board's Ground connection. On ESP32 the number becomes smaller when
@@ -863,25 +685,19 @@ ESP32-S3  1 to 14 inclusive
 
 Trying to assign to any other pins will result in a ``ValueError``.
 
-Note that TouchPads can be used to wake an ESP32 from sleep::
 
     import machine
     from machine import TouchPad, Pin
     import esp32
 
     t = TouchPad(Pin(14))
-    t.config(500)               # configure the threshold at which the pin is considered touched
     esp32.wake_on_touch(True)
-    machine.lightsleep()        # put the MCU to sleep until a touchpad is touched
 
-For more details on touchpads refer to `Espressif Touch Sensor
 <https://docs.espressif.com/projects/esp-idf/en/latest/api-reference/peripherals/touch_pad.html>`_.
 
 
-DHT driver
 ----------
 
-The DHT driver is implemented in software and works on all pins::
 
     import dht
     import machine
@@ -896,34 +712,15 @@ The DHT driver is implemented in software and works on all pins::
     d.temperature() # eg. 23.6 (°C)
     d.humidity()    # eg. 41.3 (% RH)
 
-WebREPL (web browser interactive prompt)
-----------------------------------------
 
-WebREPL (REPL over WebSockets, accessible via a web browser) is an
-experimental feature available in ESP32 port. Download web client
-from https://github.com/micropython/webrepl (hosted version available
-at http://micropython.org/webrepl), and configure it by executing::
 
     import webrepl_setup
 
-and following on-screen instructions. After reboot, it will be available
-for connection. If you disabled automatic start-up on boot, you may
-run configured daemon on demand using::
 
     import webrepl
     webrepl.start()
 
-    # or, start with a specific password
     webrepl.start(password='mypass')
 
-The WebREPL daemon listens on all active interfaces, which can be STA or
-AP.  This allows you to connect to the ESP32 via a router (the STA
-interface) or directly when connected to its access point.
 
-In addition to terminal/command prompt access, WebREPL also has provision
-for file transfer (both upload and download).  The web client has buttons for
-the corresponding functions, or you can use the command-line client
-``webrepl_cli.py`` from the repository above.
 
-See the MicroPython forum for other community-supported alternatives
-to transfer files to an ESP32 board.

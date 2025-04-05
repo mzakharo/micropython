@@ -1,24 +1,17 @@
-MicroPython license information
+MicroPython 许可证信息
 ===============================
 
-The MIT License (MIT)
+麻省理工学院许可证 (MIT)
 
-Copyright (c) 2013-2017 Damien P. George, and others
+版权所有 (c) 2013-2017 Damien P. George 等人
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+特此授予任何获得本软件和相关文档文件（“软件”）副本的人免费许可，以无限制地交易本软
+件，包括但不限于使用，复制，修改，合并的权利根据以下条件，出版，分发，再许可和/或
+出售本软件的副本，并允许向其提供本软件的人员这样做：
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+上述版权声明和本许可声明应包含在本软件的所有副本或实质部分中。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+本软件按“原样”提供，不提供任何明示或暗示的保证，包括但不限于适销性，特定用途的适用
+性和不侵权的保证。在任何情况下，作者或版权所有者均不对任何索赔，损害或其他责任承担
+任何责任，此无责声明条款还适用于无论是在合同，侵权行为还是其他方面的行为，由本软件
+引起或与之相关，或与本软件的使用或其他交易有关的软件。

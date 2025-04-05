@@ -7,7 +7,7 @@
 The ``pyb`` module contains specific functions related to the board.
 
 Time related functions
-----------------------
+-----------------------
 
 .. function:: delay(ms)
 

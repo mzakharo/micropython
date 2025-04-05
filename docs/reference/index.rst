@@ -1,5 +1,5 @@
-MicroPython language and implementation
-=======================================
+MicroPython 语言和实现方法
+===========================
 
 MicroPython aims to implement the Python 3.4 standard (with selected
 features from later versions) with respect to language syntax, and most

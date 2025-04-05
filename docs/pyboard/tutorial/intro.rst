@@ -1,5 +1,5 @@
-Introduction to the pyboard
-===========================
+Introduction to the pyboard（pyboard介绍）
+===========================================
 
 To get the most out of your pyboard, there are a few basic things to
 understand about how it works.

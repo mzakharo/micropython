@@ -38,5 +38,7 @@ MP_DECLARE_CONST_FUN_OBJ_0(machine_disable_irq_obj);
 MP_DECLARE_CONST_FUN_OBJ_VAR_BETWEEN(machine_enable_irq_obj);
 
 MP_DECLARE_CONST_FUN_OBJ_0(pyb_irq_stats_obj);
-
+#if MICROPY_ENABLE_NEOPIXEL
+MP_DECLARE_CONST_FUN_OBJ_3(machine_pixelbitstream_obj);
+#endif
 #endif // MICROPY_INCLUDED_STM32_MODMACHINE_H

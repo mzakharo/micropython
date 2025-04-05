@@ -43,9 +43,13 @@
 //
 // TIM2 and TIM5 have CH1-CH4 on PA0-PA3 respectively.  They are both 32-bit
 // counters with 16-bit prescaler.  TIM5 is used by this driver.
-
+#if MICROPY_HW_BOARD_COLUMBUS
+#define PYB_SERVO_NUM (3)
+#elif MICROPY_HW_BOARD_MAGELLAM
+#define PYB_SERVO_NUM (3)
+#else
 #define PYB_SERVO_NUM (4)
-
+#endif
 typedef struct _pyb_servo_obj_t {
     mp_obj_base_t base;
     const machine_pin_obj_t *pin;
@@ -75,7 +79,16 @@ void servo_init(void) {
         pyb_servo_obj[i].pulse_dest = 0;
         pyb_servo_obj[i].time_left = 0;
     }
+#if MICROPY_HW_BOARD_COLUMBUS
+		pyb_servo_obj[0].pin = pin_A0;
+		pyb_servo_obj[1].pin = pin_A2;
+		pyb_servo_obj[2].pin = pin_A3;
+#elif MICROPY_HW_BOARD_MAGELLAM
+		pyb_servo_obj[0].pin = pin_A0;
+		pyb_servo_obj[1].pin = pin_A2;
+		pyb_servo_obj[2].pin = pin_A3;
 
+#else
     // assign servo objects to specific pins (must be some permutation of PA0-PA3)
     #ifdef pyb_pin_X1
     pyb_servo_obj[0].pin = pyb_pin_X1;
@@ -88,6 +101,7 @@ void servo_init(void) {
     pyb_servo_obj[2].pin = pin_A2;
     pyb_servo_obj[3].pin = pin_A3;
     #endif
+#endif
 }
 
 void servo_timer_irq_callback(void) {
@@ -126,6 +140,7 @@ void servo_timer_irq_callback(void) {
 static void servo_init_channel(pyb_servo_obj_t *s) {
     static const uint8_t channel_table[4] =
     {TIM_CHANNEL_1, TIM_CHANNEL_2, TIM_CHANNEL_3, TIM_CHANNEL_4};
+
     uint32_t channel = channel_table[s->pin->pin];
 
     // GPIO configuration
@@ -212,7 +227,6 @@ static mp_obj_t pyb_servo_make_new(const mp_obj_type_t *type, size_t n_args, siz
     s->pulse_dest = s->pulse_cur;
     s->time_left = 0;
     servo_init_channel(s);
-
     return MP_OBJ_FROM_PTR(s);
 }
 
@@ -260,7 +274,6 @@ static mp_obj_t pyb_servo_calibration(size_t n_args, const mp_obj_t *args) {
             return mp_const_none;
         }
     }
-
     // bad number of arguments
     mp_raise_msg_varg(&mp_type_TypeError, MP_ERROR_TEXT("calibration expecting 1, 4 or 6 arguments, got %d"), n_args);
 }

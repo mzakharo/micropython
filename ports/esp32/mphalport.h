@@ -84,6 +84,7 @@ static inline void mp_end_atomic_section(mp_uint_t state) {
 
 uint32_t mp_hal_ticks_us(void);
 __attribute__((always_inline)) static inline uint32_t mp_hal_ticks_cpu(void) {
+
     uint32_t ccount;
     #if CONFIG_IDF_TARGET_ARCH_RISCV
     __asm__ __volatile__ ("csrr %0, 0x7E2" : "=r" (ccount)); // Machine Performance Counter Value

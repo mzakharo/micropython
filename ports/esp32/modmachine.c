@@ -133,7 +133,6 @@ static void machine_sleep_helper(wake_type_t wake_type, size_t n_args, const mp_
         mp_int_t expiry = mp_obj_get_int(args[0]);
         esp_sleep_enable_timer_wakeup(((uint64_t)expiry) * 1000);
     }
-
     #if SOC_PM_SUPPORT_EXT0_WAKEUP
     if (machine_rtc_config.ext0_pin != -1 && (machine_rtc_config.ext0_wake_types & wake_type)) {
         esp_sleep_enable_ext0_wakeup(machine_rtc_config.ext0_pin, machine_rtc_config.ext0_level ? 1 : 0);
@@ -155,7 +154,6 @@ static void machine_sleep_helper(wake_type_t wake_type, size_t n_args, const mp_
         }
     }
     #endif
-
     #if SOC_ULP_SUPPORTED
     if (machine_rtc_config.wake_on_ulp) {
         if (esp_sleep_enable_ulp_wakeup() != ESP_OK) {
@@ -163,7 +161,6 @@ static void machine_sleep_helper(wake_type_t wake_type, size_t n_args, const mp_
         }
     }
     #endif
-
     switch (wake_type) {
         case MACHINE_WAKE_SLEEP:
             esp_light_sleep_start();

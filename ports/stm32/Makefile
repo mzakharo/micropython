@@ -5,9 +5,18 @@ ifdef BOARD_DIR
 BOARD ?= $(notdir $(BOARD_DIR:/=))
 else
 # If not given on the command line, then default to PYBV10.
-BOARD ?= PYBV10
+# BOARD ?= PYBV11_CN
+# BOARD ?= PYBMINI
+BOARD ?= PYBPLUS
+# BOARD ?= COLUMBUS
+# BOARD ?= MAGELLAN-H743
+# BOARD ?= MAGELLAN-F429
+# BOARD ?= MAGELLAN-F767
 BOARD_DIR ?= boards/$(BOARD)
 endif
+
+
+DECODE_DIR = decoder
 
 ifeq ($(wildcard $(BOARD_DIR)/.),)
 $(error Invalid BOARD specified: $(BOARD_DIR))
@@ -116,6 +125,7 @@ INC += -Ilwip_inc
 
 CFLAGS += $(INC) -Wall -Wpointer-arith -Werror -Wdouble-promotion -Wfloat-conversion -std=gnu99 -nostdlib $(CFLAGS_EXTRA)
 CFLAGS += -D$(CMSIS_MCU) -DUSE_FULL_LL_DRIVER
+
 CFLAGS += $(CFLAGS_MCU_$(MCU_SERIES))
 CFLAGS += $(COPT)
 CFLAGS += -I$(BOARD_DIR)
@@ -372,6 +382,13 @@ HAL_SRC_C += $(addprefix $(STM32LIB_HAL_BASE)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_mmc.c \
 	hal_sdram.c \
 	hal_dcmi.c \
+	hal_i2s.c \
+	)
+endif
+
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4 h7))
+HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_,\
+	hal_i2s_ex.c \
 	)
 ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4))
 # HAL F4-1.16.0 has a bug with missing parentheses in HAL_MMC_Erase.
@@ -415,6 +432,15 @@ ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4))
 HAL_SRC_C += $(addprefix $(STM32LIB_HAL_BASE)/Src/stm32$(MCU_SERIES)xx_,\
 	hal_i2s_ex.c \
 	)
+endif
+
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f4))
+    HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
+endif
+
+ifeq ($(MCU_SERIES),$(filter $(MCU_SERIES),f7))
+    HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_ltdc.c)
+	HAL_SRC_C += $(addprefix $(HAL_DIR)/Src/stm32$(MCU_SERIES)xx_, hal_jpeg.c)
 endif
 
 USBDEV_SRC_C += $(addprefix $(USBDEV_DIR)/,\
@@ -610,6 +636,9 @@ $(BUILD)/firmware.pack.dfu: $(BUILD)/firmware.dfu $(MBOOT_PACK_KEYS_FILE)
 
 $(BUILD)/firmware.hex: $(BUILD)/firmware.elf
 	$(call GENERATE_HEX,$@,$^)
+	
+$(BUILD)/firmware.bin: $(BUILD)/firmware.elf
+	$(call GENERATE_BIN,$@,$^)
 
 $(BUILD)/firmware.elf: $(OBJ)
 	$(call GENERATE_ELF,$@,$^)

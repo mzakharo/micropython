@@ -61,9 +61,19 @@
 #include "usb_serial_jtag.h"
 #include "modmachine.h"
 #include "modnetwork.h"
+#include "psxcontroller.h"
 
 #if MICROPY_BLUETOOTH_NIMBLE
 #include "extmod/modbluetooth.h"
+#endif
+
+#if MICROPY_ENABLE_TFTLCD
+#include "modtftlcd.h"
+#include "lcd_spibus.h"
+#endif
+
+#if MICROPY_HW_LCD32
+#include "ILI9341.h"
 #endif
 
 #if MICROPY_PY_ESPNOW
@@ -168,6 +178,14 @@ soft_reset:
 
 soft_reset_exit:
 
+	#if MICROPY_ENABLE_TFTLCD
+	lcd_spibus_deinit();
+	#endif
+	
+	#if (MICROPY_HW_XPT2046 && MICROPY_ENABLE_TOUCH)
+	xpt_deinit_internal();
+	#endif
+		
     #if MICROPY_BLUETOOTH_NIMBLE
     mp_bluetooth_deinit();
     #endif

@@ -284,7 +284,6 @@ bool pyb_usb_dev_init(int dev_id, uint16_t vid, uint16_t pid, uint8_t mode, size
         if (USBD_SelectMode(&usb_dev->usbd_cdc_msc_hid_state, mode, hid_info, MAX_ENDPOINT(dev_id)) != 0) {
             return false;
         }
-
         #if MICROPY_HW_USB_MSC
         // Configure the MSC interface
         const void *msc_unit_default[1];
@@ -305,7 +304,6 @@ bool pyb_usb_dev_init(int dev_id, uint16_t vid, uint16_t pid, uint8_t mode, size
         usbd_msc_init_lu(msc_n, msc_unit);
         USBD_MSC_RegisterStorage(&usb_dev->usbd_cdc_msc_hid_state, (USBD_StorageTypeDef *)&usbd_msc_fops);
         #endif
-
         const uint8_t *fifo_size = usbd_fifo_size_cdc1;
         #if MICROPY_HW_USB_IS_MULTI_OTG
         if ((mode & USBD_MODE_MSC_HID) == USBD_MODE_MSC_HID) {

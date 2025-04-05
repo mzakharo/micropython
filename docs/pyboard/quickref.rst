@@ -1,27 +1,22 @@
 .. _pyboard_quickref:
 
-Quick reference for the pyboard
+pyboard 快速参考手册
 ===============================
 
-The below pinout is for PYBv1.1.  You can also view pinouts for
-other versions of the pyboard:
-`PYBv1.0 <http://micropython.org/resources/pybv10-pinout.jpg>`__
-or `PYBLITEv1.0-AC <http://micropython.org/resources/pyblitev10ac-pinout.jpg>`__
-or `PYBLITEv1.0 <http://micropython.org/resources/pyblitev10-pinout.jpg>`__.
+以下是PYBv1.1-CN引脚图：
 
 .. only:: not latex
 
-   .. image:: http://micropython.org/resources/pybv11-pinout.jpg
+   .. image:: http://www.01studio.org/micropython/picture/pyboard_v1.1-CN_pinout.png
       :alt: PYBv1.1 pinout
       :width: 700px
 
 .. only:: latex
 
-   .. image:: http://micropython.org/resources/pybv11-pinout-800px.jpg
+   .. image:: http://www.01studio.org/micropython/picture/pyboard_v1.1-CN_pinout.png
       :alt: PYBv1.1 pinout
 
-Below is a quick reference for the pyboard.  If it is your first time working with
-this board please consider reading the following sections first:
+以下是快速参考内容，如果你是第一次使用pyboard，请考虑先阅读以下章节内容：
 
 .. toctree::
    :maxdepth: 1
@@ -29,49 +24,48 @@ this board please consider reading the following sections first:
    general.rst
    tutorial/index.rst
 
-General board control
+通用控制
 ---------------------
-
 See :mod:`pyb`. ::
 
     import pyb
 
-    pyb.repl_uart(pyb.UART(1, 9600)) # duplicate REPL on UART(1)
-    pyb.wfi() # pause CPU, waiting for interrupt
-    pyb.freq() # get CPU and bus frequencies
-    pyb.freq(60000000) # set CPU freq to 60MHz
-    pyb.stop() # stop CPU, waiting for external interrupt
+    pyb.repl_uart(pyb.UART(1, 9600)) # 复制 REPL 到 UART(1)
+    pyb.wfi() # 暂停 CPU，等待中断
+    pyb.freq() # 获取 CPU 和总线的频率
+    pyb.freq(60000000) # 设置 CPU 工作频率为 60MHz
+    pyb.stop() # 暂停 CPU, 等待外部中断
 
-Delay and timing
+延时和计时器
 ----------------
 
-Use the :mod:`time <time>` module::
+使用 :mod:`time <time>` 模块::
 
     import time
 
-    time.sleep(1)           # sleep for 1 second
-    time.sleep_ms(500)      # sleep for 500 milliseconds
-    time.sleep_us(10)       # sleep for 10 microseconds
-    start = time.ticks_ms() # get value of millisecond counter
-    delta = time.ticks_diff(time.ticks_ms(), start) # compute time difference
+    time.sleep(1)           # 睡眠1s
+    time.sleep_ms(500)      # 睡眠500ms
+    time.sleep_us(10)       # 睡眠10ms
+    start = time.ticks_ms() # 获取毫秒计数器的值
+    delta = time.ticks_diff(time.ticks_ms(), start) # 计算启动时间
 
-Internal LEDs
+板载LEDs
 -------------
 
 See :ref:`pyb.LED <pyb.LED>`. ::
 
     from pyb import LED
 
-    led = LED(1) # 1=red, 2=green, 3=yellow, 4=blue
+    led = LED(1) # 1=红, 2=绿, 3=黄, 4=蓝
     led.toggle()
     led.on()
     led.off()
+    
+    # LEDs 3 和 4 支持 PWM 调节亮度 (0-255)
+    LED(4).intensity()    # 获取亮度值
+    LED(4).intensity(128) # 设置亮度值为一半
 
-    # LEDs 3 and 4 support PWM intensity (0-255)
-    LED(4).intensity()    # get intensity
-    LED(4).intensity(128) # set intensity to half
-
-Internal switch
+板载按键
 ---------------
 
 See :ref:`pyb.Switch <pyb.Switch>`. ::
@@ -79,10 +73,10 @@ See :ref:`pyb.Switch <pyb.Switch>`. ::
     from pyb import Switch
 
     sw = Switch()
-    sw.value() # returns True or False
-    sw.callback(lambda: pyb.LED(1).toggle())
+    sw.value() # 返回 True 或者 False
+    sw.callback(lambda: pyb.LED(1).toggle()) #按键按下执行相关函数
 
-Pins and GPIO
+引脚和GPIO口
 -------------
 
 See :ref:`pyb.Pin <pyb.Pin>`. ::
@@ -94,21 +88,21 @@ See :ref:`pyb.Pin <pyb.Pin>`. ::
     p_out.low()
 
     p_in = Pin('X2', Pin.IN, Pin.PULL_UP)
-    p_in.value() # get value, 0 or 1
+    p_in.value() # 获取数值, 0 或者 1
 
-Servo control
+舵机控制
 -------------
 
 See :ref:`pyb.Servo <pyb.Servo>`. ::
 
     from pyb import Servo
 
-    s1 = Servo(1) # servo on position 1 (X1, VIN, GND)
-    s1.angle(45) # move to 45 degrees
-    s1.angle(-60, 1500) # move to -60 degrees in 1500ms
-    s1.speed(50) # for continuous rotation servos
+    s1 = Servo(1) # 舵机连接到接口1 (X1, VIN, GND)
+    s1.angle(45) # 旋转到45°位置
+    s1.angle(-60, 1500) # 在1500毫秒内转到-60°的位置
+    s1.speed(50) # 适用于连续旋转舵机
 
-External interrupts
+外部中断
 -------------------
 
 See :ref:`pyb.ExtInt <pyb.ExtInt>`. ::
@@ -118,7 +112,7 @@ See :ref:`pyb.ExtInt <pyb.ExtInt>`. ::
     callback = lambda e: print("intr")
     ext = ExtInt(Pin('Y1'), ExtInt.IRQ_RISING, Pin.PULL_NONE, callback)
 
-Timers
+计时器
 ------
 
 See :ref:`pyb.Timer <pyb.Timer>`. ::
@@ -126,11 +120,11 @@ See :ref:`pyb.Timer <pyb.Timer>`. ::
     from pyb import Timer
 
     tim = Timer(1, freq=1000)
-    tim.counter() # get counter value
+    tim.counter() # 获取计时器数值
     tim.freq(0.5) # 0.5 Hz
     tim.callback(lambda t: pyb.LED(1).toggle())
 
-RTC (real time clock)
+实时时钟
 ---------------------
 
 See :ref:`pyb.RTC <pyb.RTC>` ::
@@ -143,7 +137,7 @@ See :ref:`pyb.RTC <pyb.RTC>` ::
                                                  # the day-of-week value is ignored
     rtc.datetime() # get date and time
 
-PWM (pulse width modulation)
+PWM (脉宽调变) 
 ----------------------------
 
 See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.Timer <pyb.Timer>`. ::
@@ -155,7 +149,7 @@ See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.Timer <pyb.Timer>`. ::
     ch = tim.channel(1, Timer.PWM, pin=p)
     ch.pulse_width_percent(50)
 
-ADC (analog to digital conversion)
+ADC (模数转换) 
 ----------------------------------
 
 See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.ADC <pyb.ADC>`. ::
@@ -163,9 +157,9 @@ See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.ADC <pyb.ADC>`. ::
     from pyb import Pin, ADC
 
     adc = ADC(Pin('X19'))
-    adc.read() # read value, 0-4095
+    adc.read() # 读取数值, 0-4095
 
-DAC (digital to analog conversion)
+DAC (数模转换) 
 ----------------------------------
 
 See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.DAC <pyb.DAC>`. ::
@@ -173,9 +167,9 @@ See :ref:`pyb.Pin <pyb.Pin>` and :ref:`pyb.DAC <pyb.DAC>`. ::
     from pyb import Pin, DAC
 
     dac = DAC(Pin('X5'))
-    dac.write(120) # output between 0 and 255
+    dac.write(120) # 输出数值 0 至 255
 
-UART (serial bus)
+UART(串行总线) 
 -----------------
 
 See :ref:`pyb.UART <pyb.UART>`. ::
@@ -184,9 +178,9 @@ See :ref:`pyb.UART <pyb.UART>`. ::
 
     uart = UART(1, 9600)
     uart.write('hello')
-    uart.read(5) # read up to 5 bytes
+    uart.read(5) # 读取 5 个字节
 
-SPI bus
+SPI总线
 -------
 
 See :ref:`pyb.SPI <pyb.SPI>`. ::
@@ -195,31 +189,29 @@ See :ref:`pyb.SPI <pyb.SPI>`. ::
 
     spi = SPI(1, SPI.CONTROLLER, baudrate=200000, polarity=1, phase=0)
     spi.send('hello')
-    spi.recv(5) # receive 5 bytes on the bus
-    spi.send_recv('hello') # send and receive 5 bytes
+    spi.recv(5) # 接收5个字节
+    spi.send_recv('hello') # 发送和接收5个字节
 
-I2C bus
+I2C总线
 -------
 
-Hardware I2C is available on the X and Y halves of the pyboard via ``I2C('X')``
-and ``I2C('Y')``.  Alternatively pass in the integer identifier of the peripheral,
-eg ``I2C(1)``.  Software I2C is also available by explicitly specifying the
-``scl`` and ``sda`` pins instead of the bus name.  For more details see
-:ref:`machine.I2C <machine.I2C>`. ::
+硬件I2C可以直接通过X和Y半部分接口直接定义成 ``I2C('X')`` 和 ``I2C('Y')`` ，此时使用默认的I2C接口。
+另外也可以直接使用标识符，例如 ``I2C(1)``。  软件I2C可以通过 ``scl`` 和 ``sda`` 结合引脚来自定义。
+更多详细信息请看 :ref:`machine.I2C <machine.I2C>`. ::
 
     from machine import I2C
 
-    i2c = I2C('X', freq=400000)                 # create hardware I2c object
-    i2c = I2C(scl='X1', sda='X2', freq=100000)  # create software I2C object
+    i2c = I2C('X', freq=400000)                 # 定义硬件I2C对象
+    i2c = I2C(scl='X1', sda='X2', freq=100000)  # 定义软件I2C对象
 
-    i2c.scan()                          # returns list of peripheral addresses
-    i2c.writeto(0x42, 'hello')          # write 5 bytes to peripheral with address 0x42
-    i2c.readfrom(0x42, 5)               # read 5 bytes from peripheral
+    i2c.scan()                          # 返回扫描到的从机地址
+    i2c.writeto(0x42, 'hello')          # 往地址为 0x42 的从机写5个字节
+    i2c.readfrom(0x42, 5)               # 从地址为 0x42 的从机读取5个字节
 
-    i2c.readfrom_mem(0x42, 0x10, 2)     # read 2 bytes from peripheral 0x42, peripheral memory 0x10
-    i2c.writeto_mem(0x42, 0x10, 'xy')   # write 2 bytes to peripheral 0x42, peripheral memory 0x10
+    i2c.readfrom_mem(0x42, 0x10, 2)     # 从设备地址 0x42和存储器地址为0x10中读取2个字节
+    i2c.writeto_mem(0x42, 0x10, 'xy')   # 从设备地址 0x42和存储器地址为0x10中写入2个字节
 
-Note: for legacy I2C support see :ref:`pyb.I2C <pyb.I2C>`.
+注意: 对于传统的I2C支持，请参阅 :ref:`pyb.I2C <pyb.I2C>`.
 
 I2S bus
 -------
@@ -241,7 +233,7 @@ PYBv1.0/v1.1 has one I2S bus with id=2.
 PYBD-SFxW has two I2S buses with id=1 and id=2.
 I2S is shared with SPI.
 
-CAN bus (controller area network)
+CAN总线 (区域网络控制)
 ---------------------------------
 
 See :ref:`pyb.CAN <pyb.CAN>`. ::
@@ -250,10 +242,10 @@ See :ref:`pyb.CAN <pyb.CAN>`. ::
 
     can = CAN(1, CAN.LOOPBACK)
     can.setfilter(0, CAN.LIST16, 0, (123, 124, 125, 126))
-    can.send('message!', 123)   # send a message with id 123
-    can.recv(0)                 # receive message on FIFO 0
+    can.send('message!', 123)   # 发送ID为123的消息
+    can.recv(0)                 # 在 FIFO 0 上接收信息
 
-Internal accelerometer
+板载三轴加速度传感器
 ----------------------
 
 See :ref:`pyb.Accel <pyb.Accel>`. ::
@@ -261,4 +253,4 @@ See :ref:`pyb.Accel <pyb.Accel>`. ::
     from pyb import Accel
 
     accel = Accel()
-    print(accel.x(), accel.y(), accel.z(), accel.tilt())
+    print(accel.x(), accel.y(), accel.z(), accel.tilt()) #打印X,Y,Z值
