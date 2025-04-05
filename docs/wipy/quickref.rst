@@ -1,6 +1,6 @@
 .. _wipy_quickref:
 
-WiPy 快速参考手册
+Quick reference for the WiPy
 ============================
 
 .. image:: https://raw.githubusercontent.com/wipy/wipy/master/docs/PinOUT.png

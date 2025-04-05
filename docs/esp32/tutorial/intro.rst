@@ -1,20 +1,37 @@
 .. _esp32_intro:
 
+Getting started with MicroPython on the ESP32
 =============================================
 
+Using MicroPython is a great way to get the most of your ESP32 board.  And
+vice versa, the ESP32 chip is a great platform for using MicroPython.  This
+tutorial will guide you through setting up MicroPython, getting a prompt, using
+WebREPL, connecting to the network and communicating with the Internet, using
+the hardware peripherals, and controlling some external components.
 
+Let's get started!
 
+Requirements
 ------------
 
 The first thing you need is a board with an ESP32 chip.  The MicroPython
 software supports the ESP32 chip itself and any board should work.  The main
 characteristic of a board is how the GPIO pins are connected to the outside
 world, and whether it includes a built-in USB-serial converter to make the
+UART available to your PC.
 
+Names of pins will be given in this tutorial using the chip names (eg GPIO2)
+and it should be straightforward to find which pin this corresponds to on your
+particular board.
 
+Powering the board
 ------------------
 
+If your board has a USB connector on it then most likely it is powered through
+this when connected to your PC.  Otherwise you will need to power it directly.
+Please refer to the documentation for your board for further details.
 
+Getting the firmware
 --------------------
 
 The first thing you need to do is download the most recent MicroPython firmware
@@ -95,12 +112,16 @@ after flashing, here are some troubleshooting recommendations:
 
 .. _esp32_serial_prompt:
 
+Serial prompt
 -------------
 
 Once you have the firmware on the device you can access the REPL (Python prompt)
 over either UART0, which might be connected to a USB-serial converter depending
 on your board, or the chip's built-in USB device. The baudrate is 115200.
 
+From here you can now follow the ESP8266 tutorial, because these two Espressif chips
+are very similar when it comes to using MicroPython on them.  The ESP8266 tutorial
+is found at :ref:`esp8266_tutorial` (but skip the Introduction section).
 
 .. _esptool Troubleshooting documentation: https://docs.espressif.com/projects/esptool/en/latest/esp32/troubleshooting.html
 .. _MicroPython download page: https://micropython.org/download/?port=esp32

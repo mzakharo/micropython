@@ -1,6 +1,5 @@
-
-MicroPython 开发和构建
-===================================
+MicroPython Internals
+=====================
 
 This chapter covers a tour of MicroPython from the perspective of a developer, contributing
 to MicroPython. It acts as a comprehensive resource on the implementation details of MicroPython

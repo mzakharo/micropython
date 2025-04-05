@@ -1,6 +1,6 @@
 .. _micropython_lib:
 
-MicroPython 相关库
+MicroPython libraries
 =====================
 
 .. warning::
@@ -129,8 +129,7 @@ To access platform-specific hardware use the appropriate library, e.g.
 :mod:`pyb` in the case of the Pyboard.
 
 
-
-pyboard专用库
+Libraries specific to the pyboard
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following libraries are specific to the pyboard.
@@ -141,26 +140,10 @@ The following libraries are specific to the pyboard.
   pyb.rst
   stm.rst
   lcd160cr.rst
-  
-哥伦布专用库
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following libraries are specific to the columbus.
-
-.. toctree::
-  :maxdepth: 2
-
-  pyb.rst
-  columbus/tftlcd.rst
-  columbus/touch.rst
-  columbus/sensor.rst
-  columbus/audio.rst
-  columbus/video.rst
-  columbus/gui.rst
 
 
-WiPy专用库
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Libraries specific to the WiPy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following libraries and classes are specific to the WiPy.
 
@@ -172,9 +155,8 @@ The following libraries and classes are specific to the WiPy.
   machine.TimerWiPy.rst
 
 
-
-ESP8266和ESP32专用库
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Libraries specific to the ESP8266 and ESP32
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The following libraries are specific to the ESP8266 and ESP32.
 
