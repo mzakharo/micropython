@@ -145,6 +145,12 @@ list(APPEND MICROPY_SOURCE_PORT
 	psxcontroller.c
 	modcontroller.c
 	modgamepad.c
+  picture/piclib.c
+  picture/bmp.c
+  picture/tjpgd.c
+	modtftlcd.c
+	ST7789.c
+  lcd_spibus.c
 )
 list(TRANSFORM MICROPY_SOURCE_PORT PREPEND ${MICROPY_PORT_DIR}/)
 list(APPEND MICROPY_SOURCE_PORT ${CMAKE_BINARY_DIR}/pins.c)
@@ -228,6 +234,7 @@ idf_component_register(
         ${MICROPY_INC_USERMOD}
         ${MICROPY_INC_TINYUSB}
         ${MICROPY_PORT_DIR}
+        ${MICROPY_PORT_DIR}/picture
         ${MICROPY_BOARD_DIR}
         ${CMAKE_BINARY_DIR}
     LDFRAGMENTS

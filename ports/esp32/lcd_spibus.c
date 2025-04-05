@@ -8,6 +8,7 @@
 	* Description			:	
 ******************************************************************************/
 
+#define STATIC static
 #include "mpconfigboard.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -23,10 +24,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <rom/gpio.h>
 #include "py/runtime.h"
 #include "py/stream.h"
 #include "py/mphal.h"
 #include "modmachine.h"
+#include <soc/gpio_sig_map.h>
 
 #include "py/binary.h"
 #include "py/objarray.h"
@@ -227,9 +230,9 @@ void  lcd_bus_init(void)
 		
 		//Reset the display
 		gpio_set_level(self->rst, 0);
-		vTaskDelay(100 / portTICK_RATE_MS);
+		vTaskDelay(pdMS_TO_TICKS(100)); 
 		gpio_set_level(self->rst, 1);
-		vTaskDelay(100 / portTICK_RATE_MS);
+		vTaskDelay(pdMS_TO_TICKS(100)); 
 		
 		is_init = 1;
 	}

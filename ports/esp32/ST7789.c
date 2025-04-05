@@ -8,6 +8,7 @@
 	* Description			:	
 ******************************************************************************/
 
+#define STATIC static
 #include "mpconfigboard.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -100,7 +101,7 @@ void  mp_init_ST7789(void)
 		lcd_spibus_send_cmd(p_st7789, st7789_init_cmds[cmd].cmd);
 		lcd_spibus_send_data(p_st7789, st7789_init_cmds[cmd].data, st7789_init_cmds[cmd].databytes & 0x1F);
 		if (st7789_init_cmds[cmd].databytes & 0x80) {
-			vTaskDelay(100 / portTICK_RATE_MS);
+			vTaskDelay(pdMS_TO_TICKS(100));
 		}
 		cmd++;
 	} 
@@ -743,12 +744,14 @@ STATIC const mp_rom_map_elem_t ST7789_locals_dict_table[] = {
 };
 STATIC MP_DEFINE_CONST_DICT(ST7789_locals_dict, ST7789_locals_dict_table);
 //---------------------------华丽的分割线-------------------------------------------------------------------
-const mp_obj_type_t ST7789_type = {
-    { &mp_type_type },
-    .name = MP_QSTR_ST7789,
-    .make_new = ST7789_make_new,
-    .locals_dict = (mp_obj_dict_t*)&ST7789_locals_dict,
-};
+
+MP_DEFINE_CONST_OBJ_TYPE(
+    ST7789_type,
+    MP_QSTR_ST7789,
+    MP_TYPE_FLAG_NONE,
+    make_new, ST7789_make_new,
+    locals_dict, &ST7789_locals_dict
+  );
 
 //-------------------------------------------------------------------------------------------
 #endif

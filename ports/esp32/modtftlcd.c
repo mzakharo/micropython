@@ -7,6 +7,7 @@
 	* Description			:	
 ******************************************************************************/
 
+#define STATIC static
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,7 +18,6 @@
 #include "mpconfigboard.h"
 #include "modmachine.h"
 #include "extmod/vfs.h"
-#include "extmod/utime_mphal.h"
 #include "py/obj.h"
 #include "py/builtin.h"
 #include "py/stream.h"
@@ -427,4 +427,5 @@ const mp_obj_module_t tftlcd_module = {
 		.base = { &mp_type_module },
 		.globals = (mp_obj_dict_t *)&tftlcd_module_globals,
 };
+MP_REGISTER_MODULE(MP_QSTR_tftlcd, tftlcd_module);
 #endif

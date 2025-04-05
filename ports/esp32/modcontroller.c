@@ -42,6 +42,7 @@ const mp_obj_module_t controller_module = {
     .globals = (mp_obj_dict_t *)&controller_module_globals,
 };
 
+MP_REGISTER_MODULE(MP_QSTR_controller, controller_module);
 /*******************************************************************************/
 
 #endif 
