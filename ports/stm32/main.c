@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2013-2018 Damien P. George
+ * Copyright (c) 2013-2020 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,6 @@
 
 #include "boardctrl.h"
 #include "mpbthciport.h"
-
 #include "mpu.h"
 #include "rfcore.h"
 #include "systick.h"
@@ -82,7 +81,6 @@
 #include "rtc.h"
 #include "storage.h"
 #include "sdcard.h"
-#include "sram.h"
 #include "sdram.h"
 #include "rng.h"
 #include "accel.h"
@@ -90,22 +88,6 @@
 #include "dac.h"
 #include "pyb_can.h"
 #include "subghz.h"
-
-#if MICROPY_HW_LCD43M
-#include "lcd43m.h"
-#endif
-
-#if MICROPY_ENABLE_TFTLCD
-#include "modtftlcd.h"
-#endif
-
-#if MICROPY_HW_LTDC_LCD
-#include "ltdc.h"
-#endif
-
-#if MICROPY_ENABLE_SPILCD
-#include "lcd_spibus.h"
-#endif
 
 #if MICROPY_PY_THREAD
 static pyb_thread_t pyb_thread_main;
@@ -163,6 +145,7 @@ MP_NOINLINE static bool init_flash_fs(uint reset_mode) {
         // Asked by user to reset filesystem
         factory_reset_create_filesystem();
     }
+
     // Default block device to entire flash storage
     mp_obj_t bdev = MP_OBJ_FROM_PTR(&pyb_flash_obj);
 
@@ -336,6 +319,9 @@ void stm32_main(uint32_t reset_mode) {
     SCB->VTOR = (uint32_t)&__isr_vector_ram_start;
     #else
     #if defined(MICROPY_HW_VTOR)
+    // Change IRQ vector table if configured differently
+    SCB->VTOR = MICROPY_HW_VTOR;
+    #endif
     #endif
     #endif
 
@@ -424,9 +410,7 @@ void stm32_main(uint32_t reset_mode) {
     #endif
     #endif
 
-    #if defined(MICROPY_BOARD_EARLY_INIT)
     MICROPY_BOARD_EARLY_INIT();
-    #endif
 
     // basic sub-system init
     #if defined(STM32H5)
@@ -450,16 +434,11 @@ void stm32_main(uint32_t reset_mode) {
     sdram_valid = sdram_test(false);
     #endif
     #endif
-	#if MICROPY_HW_LCD43M
-	#if MICROPY_HW_BOARD_COLUMBUS
-	lcd43m_init();
-	#endif
-	#endif
     #if MICROPY_PY_THREAD
     pyb_thread_init(&pyb_thread_main);
     #endif
     pendsv_init();
-	led_init();
+    led_init();
     #if MICROPY_HW_HAS_SWITCH
     switch_init0();
     #endif
@@ -525,11 +504,11 @@ void stm32_main(uint32_t reset_mode) {
     state.reset_mode = reset_mode;
     state.log_soft_reset = false;
 
-	MICROPY_BOARD_BEFORE_SOFT_RESET_LOOP(&state);
+    MICROPY_BOARD_BEFORE_SOFT_RESET_LOOP(&state);
 
 soft_reset:
 
-	MICROPY_BOARD_TOP_SOFT_RESET_LOOP(&state);
+    MICROPY_BOARD_TOP_SOFT_RESET_LOOP(&state);
 
     // Python threading init
     #if MICROPY_PY_THREAD
@@ -570,15 +549,11 @@ soft_reset:
     #if MICROPY_HW_ENABLE_USB
     pyb_usb_init0();
     #endif
-	
+
     #if MICROPY_PY_MACHINE_I2S
     machine_i2s_init0();
     #endif
-	
-	#if MICROPY_ENABLE_SPILCD
-	lcd_spibus_deinit();
-	#endif
-	
+
     // Initialise the local flash filesystem.
     // Create it if needed, mount in on /flash, and set it as current dir.
     bool mounted_flash = false;
@@ -684,15 +659,16 @@ soft_reset:
 soft_reset_exit:
 
     // soft reset
-		MICROPY_BOARD_START_SOFT_RESET(&state);
-		
-		#if MICROPY_HW_ENABLE_STORAGE
+
+    MICROPY_BOARD_START_SOFT_RESET(&state);
+
+    #if MICROPY_HW_ENABLE_STORAGE
     if (state.log_soft_reset) {
         mp_printf(&mp_plat_print, "MPY: sync filesystems\n");
     }
     storage_flush();
     #endif
-		
+
     if (state.log_soft_reset) {
         mp_printf(&mp_plat_print, "MPY: soft reboot\n");
     }

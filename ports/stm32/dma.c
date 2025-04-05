@@ -41,10 +41,6 @@
 #define MICROPY_HW_DMA_ENABLE_AUTO_TURN_OFF (1)
 #endif
 
-#if defined(STM32F7) && defined(MICROPY_PY_HJPEG_DECODE) && defined(MICROPY_ENABLE_JPEG_UTILS)
-#include "hjpgd.h"
-#endif
-
 #define DMA_IDLE_ENABLED()  (dma_idle.enabled != 0)
 #define DMA_SYSTICK_LOG2    (3)
 #define DMA_SYSTICK_MASK    ((1 << DMA_SYSTICK_LOG2) - 1)
@@ -312,7 +308,6 @@ static const uint8_t dma_irqn[NSTREAM] = {
 // DMA1 streams
 const dma_descr_t dma_I2C_1_RX = { DMA1_Stream0, DMA_CHANNEL_1, dma_id_0,   &dma_init_struct_spi_i2c };
 const dma_descr_t dma_SPI_3_RX = { DMA1_Stream2, DMA_CHANNEL_0, dma_id_2,   &dma_init_struct_spi_i2c };
-
 #if defined(STM32F7)
 const dma_descr_t dma_I2C_4_RX = { DMA1_Stream2, DMA_CHANNEL_2, dma_id_2,   &dma_init_struct_spi_i2c };
 #endif
@@ -910,16 +905,6 @@ void DMA1_Stream0_IRQHandler(void) {
 }
 void DMA1_Stream1_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream1_IRQn);
-	#if defined(STM32H7)
-	#if MICROPY_HW_OV2640
-	if(__HAL_DMA_GET_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5)!=RESET)
-	{
-		__HAL_DMA_CLEAR_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5);
-		dcmi_rx_callback();
-		SCB_CleanInvalidateDCache();
-	} 
-	#endif
-	#endif
     if (dma_handle[dma_id_1] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_1]);
     }
@@ -932,44 +917,20 @@ void DMA1_Stream2_IRQHandler(void) {
     }
     IRQ_EXIT(DMA1_Stream2_IRQn);
 }
-
 void DMA1_Stream3_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream3_IRQn);
-
-    #if MICROPY_HW_WM8978
-
-    if(__HAL_DMA_GET_FLAG(&I2S2_RXDMA_Handler,DMA_FLAG_TCIF3_7)!=RESET) 
-    {
-		__HAL_DMA_CLEAR_FLAG(&I2S2_RXDMA_Handler,DMA_FLAG_TCIF3_7);   
-		i2s_rx_callback();
-    } 
-
-    #endif
-
     if (dma_handle[dma_id_3] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_3]);
     }
     IRQ_EXIT(DMA1_Stream3_IRQn);
-
 }
- void DMA1_Stream4_IRQHandler(void) {
+void DMA1_Stream4_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream4_IRQn);
-    #if MICROPY_HW_WM8978
-  	 if(__HAL_DMA_GET_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4)!=RESET) 
-	 {
-		 __HAL_DMA_CLEAR_FLAG(&I2S2_TXDMA_Handler,DMA_FLAG_TCIF0_4);		 
-		 i2s_tx_callback();
-		 #if defined(STM32F7)
-		 SCB_CleanInvalidateDCache();////////////
-		 #endif
-	 } 
-     #endif
     if (dma_handle[dma_id_4] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_4]);
     }
     IRQ_EXIT(DMA1_Stream4_IRQn);
 }
-
 void DMA1_Stream5_IRQHandler(void) {
     IRQ_ENTER(DMA1_Stream5_IRQn);
     if (dma_handle[dma_id_5] != NULL) {
@@ -1000,18 +961,6 @@ void DMA2_Stream0_IRQHandler(void) {
 }
 void DMA2_Stream1_IRQHandler(void) {
     IRQ_ENTER(DMA2_Stream1_IRQn);
-	#if defined(STM32F4) || defined(STM32F7)
-	#if MICROPY_HW_OV2640
-	if(__HAL_DMA_GET_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5)!=RESET)
-		{
-			__HAL_DMA_CLEAR_FLAG(&DMADMCI_Handler,DMA_FLAG_TCIF1_5);
-			dcmi_rx_callback();
-			#if defined(STM32F7)
-			SCB_CleanInvalidateDCache();
-			#endif
-		} 
-	#endif
-	#endif
     if (dma_handle[dma_id_9] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_9]);
     }
@@ -1026,9 +975,6 @@ void DMA2_Stream2_IRQHandler(void) {
 }
 void DMA2_Stream3_IRQHandler(void) {
     IRQ_ENTER(DMA2_Stream3_IRQn);
-	#if defined(STM32F7) && defined(MICROPY_PY_HJPEG_DECODE) && defined(MICROPY_ENABLE_JPEG_UTILS)
-	HJPGD_DMA_IN_IRQHandler();
-	#endif
     if (dma_handle[dma_id_11] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_11]);
     }
@@ -1036,9 +982,6 @@ void DMA2_Stream3_IRQHandler(void) {
 }
 void DMA2_Stream4_IRQHandler(void) {
     IRQ_ENTER(DMA2_Stream4_IRQn);
-	#if defined(STM32F7) && defined(MICROPY_PY_HJPEG_DECODE) && defined(MICROPY_ENABLE_JPEG_UTILS)
-	HJPGD_DMA_OUT_IRQHandler();
-	#endif
     if (dma_handle[dma_id_12] != NULL) {
         HAL_DMA_IRQHandler(dma_handle[dma_id_12]);
     }

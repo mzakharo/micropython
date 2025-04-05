@@ -197,50 +197,11 @@ extern const struct _mp_obj_module_t stm_module;
 #define MACHINE_BUILTIN_MODULE_CONSTANTS
 #endif
 
-#if MICROPY_ENABLE_TFTLCD
-#define TFTLCD_MODULE              { MP_ROM_QSTR(MP_QSTR_tftlcd), MP_ROM_PTR(&tftlcd_module) },
-#else
-#define TFTLCD_MODULE
-#endif
-#if MICROPY_ENABLE_TOUCH
-#define TOUCH_MODULE              { MP_ROM_QSTR(MP_QSTR_touch), MP_ROM_PTR(&touch_module) },
-#else
-#define TOUCH_MODULE
-#endif
-#if MICROPY_ENABLE_AUDIO
-#define AUDIO_MODULE              { MP_ROM_QSTR(MP_QSTR_audio), MP_ROM_PTR(&audio_module) },
-#else
-#define AUDIO_MODULE
-#endif
-#if MICROPY_ENABLE_VIDEO
-#define VIDEO_MODULE              { MP_ROM_QSTR(MP_QSTR_video), MP_ROM_PTR(&video_module) },
-#else
-#define VIDEO_MODULE
-#endif
-#if MICROPY_ENABLE_SENSOR
-#define SENSOR_MODULE              { MP_ROM_QSTR(MP_QSTR_sensor), MP_ROM_PTR(&sensor_module) },
-#else
-#define SENSOR_MODULE
-#endif
-#if MICROPY_ENABLE_GUI
-#define GUI_MODULE              { MP_ROM_QSTR(MP_QSTR_gui), MP_ROM_PTR(&gui_module) },
-#else
-#define GUI_MODULE
-#endif
-
-#if MICROPY_ENABLE_MAGELLAN_MODULE
-#define MAGELLAN_MODULE                  { MP_ROM_QSTR(MP_QSTR_magellan), MP_ROM_PTR(&magellan_module) },
-#else
-#define MAGELLAN_MODULE
-#endif
-
 #if defined(MICROPY_HW_ETH_MDC)
 extern const struct _mp_obj_type_t network_lan_type;
 #define MICROPY_HW_NIC_ETH                  { MP_ROM_QSTR(MP_QSTR_LAN), MP_ROM_PTR(&network_lan_type) },
-#define MICROPY_HW_01STUDIO_ETH				{ MP_ROM_QSTR(MP_QSTR_Ethernet), MP_ROM_PTR(&network_lan_type) },
 #else
 #define MICROPY_HW_NIC_ETH
-#define MICROPY_HW_01STUDIO_ETH
 #endif
 
 #if MICROPY_PY_NETWORK_CYW43

@@ -115,6 +115,7 @@ static int lu_ioctl(uint8_t lun, int op, uint32_t *data) {
         return -1;
     }
     const void *lu = usbd_msc_lu_data[lun];
+
     if (lu == &pyb_flash_type) {
         switch (op) {
             case MP_BLOCKDEV_IOCTL_INIT:
@@ -236,14 +237,11 @@ static int usbd_msc_Inquiry(uint8_t lun, const uint8_t *params, uint8_t *data_ou
 static int8_t usbd_msc_GetCapacity(uint8_t lun, uint32_t *block_num, uint16_t *block_size) {
     uint32_t block_size_u32 = 0;
     int res = lu_ioctl(lun, MP_BLOCKDEV_IOCTL_BLOCK_SIZE, &block_size_u32);
-		
     if (res != 0) {
         return -1;
     }
     *block_size = block_size_u32;
-		int star = lu_ioctl(lun, MP_BLOCKDEV_IOCTL_BLOCK_COUNT, block_num);
-		return star;
-    //return lu_ioctl(lun, MP_BLOCKDEV_IOCTL_BLOCK_COUNT, block_num);
+    return lu_ioctl(lun, MP_BLOCKDEV_IOCTL_BLOCK_COUNT, block_num);
 }
 
 // Check if a logical unit is ready
@@ -282,9 +280,6 @@ static int8_t usbd_msc_PreventAllowMediumRemoval(uint8_t lun, uint8_t param) {
     return lu_ioctl(lun, MP_BLOCKDEV_IOCTL_SYNC, &dummy);
 }
 
-#if MICROPY_HW_COLUMBUS
-extern volatile uint8_t Is_FileReadOk;
-#endif
 // Read data from a logical unit
 static int8_t usbd_msc_Read(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t blk_len) {
     if (lun >= usbd_msc_lu_num) {

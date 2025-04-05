@@ -40,8 +40,7 @@ static const char fresh_boot_py[] =
     "# boot.py -- run on boot to configure USB and filesystem\r\n"
     "# Put app code in main.py\r\n"
     "\r\n"
-		"#import machine\r\n"
-		"import machine\r\n"
+    "import machine\r\n"
     "import pyb\r\n"
     "#pyb.main('main.py') # main script to run after this one\r\n"
 #if MICROPY_HW_ENABLE_USB

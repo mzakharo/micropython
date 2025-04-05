@@ -672,12 +672,6 @@
 #define MICROPY_HW_USB_HID (MICROPY_HW_ENABLE_USB)
 #endif
 
-#if MICROPY_HW_BOARD_COLUMBUS
-#define MICROPY_HW_COLUMBUS (MICROPY_HW_BOARD_COLUMBUS)
-#else
-#define MICROPY_HW_COLUMBUS (0)
-#endif
-
 // Pin definition header file
 #define MICROPY_PIN_DEFS_PORT_H "pin_defs_stm32.h"
 
