@@ -285,6 +285,7 @@ static mp_obj_t network_wlan_active(size_t n_args, const mp_obj_t *args) {
             if (!wifi_started) {
                 esp_exceptions(esp_wifi_start());
                 wifi_started = true;
+                esp_exceptions(esp_wifi_set_protocol(ESP_IF_WIFI_STA, WIFI_PROTOCOL_11B|WIFI_PROTOCOL_11G|WIFI_PROTOCOL_11N|WIFI_PROTOCOL_LR));
             }
         }
 

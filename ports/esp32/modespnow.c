@@ -258,7 +258,7 @@ static mp_obj_t espnow_config(size_t n_args, const mp_obj_t *pos_args, mp_map_t 
     if (args[ARG_rate].u_int >= 0) {
         esp_initialise_wifi();  // Call the wifi init code in network_wlan.c
         check_esp_err(esp_wifi_config_espnow_rate(ESP_IF_WIFI_STA, args[ARG_rate].u_int));
-        check_esp_err(esp_wifi_config_espnow_rate(ESP_IF_WIFI_AP, args[ARG_rate].u_int));
+        //check_esp_err(esp_wifi_config_espnow_rate(ESP_IF_WIFI_AP, args[ARG_rate].u_int));
     }
     if (args[ARG_get].u_obj == MP_OBJ_NULL) {
         return mp_const_none;
