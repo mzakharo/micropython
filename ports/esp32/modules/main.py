@@ -146,7 +146,7 @@ while True:
     wdt.feed()
     buf = {'rssi': now.peers_table[host], 'soc': soc}
     try:
-        now.send(peer, json.dumps())
+        now.send(peer, json.dumps(buf))
     except OSError as e:
         print(e)
         continue
