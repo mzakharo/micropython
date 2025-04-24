@@ -1,6 +1,7 @@
 import network
 import espnow
 import json
+import machine
 from machine import WDT
 from machine import Pin, PWM
 wdt = WDT(timeout=5000)
@@ -16,6 +17,40 @@ now.config(rate=0x29) # 0x29 LORA 250KBps
 peer = b'\xbb\xbb\xbb\xbb\xbb\xbb'   # MAC address of peer's wifi interface
 now.add_peer(peer)
 
+
+# --- Configuration ---
+ADC_PIN_V_MID = 5
+ADC_PIN_V_TOTAL = 4
+
+# --- Resistor values for V_MID (Cell 1) divider ---
+R1_MID = 100000.0  # R1b
+R2_MID = 330000.0  # R2b
+VOLTAGE_MULTIPLIER_MID = (R1_MID + R2_MID) / R2_MID * 1.045 # Approx 1.303
+
+# --- Resistor values for V_TOTAL divider ---
+R1_TOTAL = 100000.0 # R1a
+R2_TOTAL = 47000.0  # R2a
+VOLTAGE_MULTIPLIER_TOTAL = (R1_TOTAL + R2_TOTAL) / R2_TOTAL * 1.020 # Approx 3.128
+
+ADC_ATTENUATION = machine.ADC.ATTN_11DB
+
+adc_mid = machine.ADC(machine.Pin(ADC_PIN_V_MID))
+adc_mid.atten(ADC_ATTENUATION)
+
+adc_total = machine.ADC(machine.Pin(ADC_PIN_V_TOTAL))
+adc_total.atten(ADC_ATTENUATION)
+
+
+coefficients = [-330.54949578, 4873.56097706, -26754.59502068,  64907.5504285, -58774.37023182]
+def estimate_soc_poly(voltage, coeffs=coefficients):
+    #voltage = min(4.2, max(3.2, voltage))
+    # Calculate polynomial value using Horner's method (more efficient)
+    # P(V) = (((c_n*V + c_{n-1})*V + c_{n-2})*V + ... + c_1)*V + c_0
+    soc = coeffs[0]
+    for i in range(1, len(coeffs)):
+        soc = soc * voltage + coeffs[i]
+    soc_clamped = max(0.0, min(100.0, soc))
+    return round(soc_clamped)
 
 # Deadzone settings
 DEADZONE_SIZE = 20      #  around center
@@ -73,6 +108,14 @@ CH1_MAX_DUTY = 1730000
 CH1_CENTER_DUTY = (CH1_MIN_DUTY + CH1_MAX_DUTY) // 2  # Center position
 ch1.duty_ns(CH1_CENTER_DUTY)
 
+def get_soc():
+    vbat_mid = adc_mid.read_uv() / 1e6 * VOLTAGE_MULTIPLIER_MID
+    vbat_total = adc_total.read_uv() / 1e6 * VOLTAGE_MULTIPLIER_TOTAL
+    vbat2 = vbat_total - vbat_mid
+    soc1 = estimate_soc_poly(vbat_mid)
+    soc2 = estimate_soc_poly(vbat2)
+    print(vbat_mid, vbat2, soc1, soc2)
+    return (soc1, soc2)
 
 while True:
     try:
@@ -80,6 +123,7 @@ while True:
         if msg is None:
             ch0.duty_ns(CH0_CENTER_DUTY)
             ch1.duty_ns(CH1_CENTER_DUTY)
+            print('No message received', get_soc())
             wdt.feed()
             continue
         else:
@@ -87,7 +131,9 @@ while True:
     except Exception as e:
         print(e)
         continue
-    
+
+    soc = get_soc()
+
     if controller[5] & 1<<6: #A
         ch0.duty_ns(joystick_to_servo(controller[2], CH0_MIN_SLOWEST, CH0_MAX_SLOWEST, CH0_CENTER_DUTY))
     elif controller[5] & 1<<5: #B
@@ -98,8 +144,9 @@ while True:
     ch1.duty_ns(joystick_to_servo(controller[1], CH1_MIN_DUTY, CH1_MAX_DUTY, CH1_CENTER_DUTY))
     print(host, controller, now.peers_table[host])
     wdt.feed()
+    buf = {'rssi': now.peers_table[host], 'soc': soc}
     try:
-        now.send(peer, json.dumps(now.peers_table[host]))
+        now.send(peer, json.dumps())
     except OSError as e:
         print(e)
         continue
