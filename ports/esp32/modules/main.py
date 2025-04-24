@@ -76,7 +76,7 @@ while True:
         if msg:
             msg = json.loads(msg)
         else:
-            msg = [0,0]
+            msg = {'rssi': [0,0], 'soc' : (0,0)}
     except Exception as e:
         sys.print_exception(e)
         time.sleep_ms(20)
@@ -88,7 +88,7 @@ while True:
     print(v, msg, val, vbat, soc)
 
     err = False
-    if (msg[0] == 0 or val[0] == 0) or soc < 15:
+    if (msg['rssi'][0] == 0 or val[0] == 0) or soc < 15 or min(msg['soc']) < 15:
         err = True
 
     if err and bg != RED:
@@ -98,9 +98,10 @@ while True:
         d.fill(WHITE)
         bg = WHITE
 
-    d.printStr('rRSSi: '+str(msg[0])+'  ',10,45+30,color=BLACK,size=2)
+    d.printStr('rRSSi: '+str(msg['rssi'][0])+'  ',10,45+30,color=BLACK,size=2)
     d.printStr('cRSSi: '+str(val[0])+'  ',10,45+60,color=BLACK,size=2)
     d.printStr('cBAT: '+str(soc)+'  ',10,45+90,color=BLACK,size=2)
+    d.printStr('rBAT: '+str(min(msg['soc']))+'  ',10,45+120,color=BLACK,size=2)
 
         
     d.printStr('L-X: '+str(v[1])+'  ',10,15,color=BLACK,size=2)
