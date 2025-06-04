@@ -11,7 +11,7 @@ ifdef BOARD_DIR
 BOARD ?= $(notdir $(BOARD_DIR:/=))
 else
 # If not given on the command line, then default to ESP32_GENERIC.
-BOARD ?= ESP32_GENERIC
+BOARD ?= ESP32_CAM
 BOARD_DIR ?= boards/$(BOARD)
 endif
 
@@ -48,6 +48,7 @@ CMAKE_ARGS =
 ifdef USER_C_MODULES
 	CMAKE_ARGS += -DUSER_C_MODULES=${USER_C_MODULES}
 endif
+CMAKE_ARGS += -DUSER_C_MODULES=../../../../micropython-camera-driver/src/micropython.cmake
 
 IDFPY_FLAGS += -D MICROPY_BOARD=$(BOARD) -D MICROPY_BOARD_DIR="$(abspath $(BOARD_DIR))" $(CMAKE_ARGS)
 
