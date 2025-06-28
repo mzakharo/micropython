@@ -1,9 +1,5 @@
 from machine import WDT
-wdt = WDT(timeout=60000)
-wdt.feed()
-import network
 import time
-import webrepl
 import camera
 from machine import Pin, reset
 from umqtt.robust import MQTTClient
@@ -21,19 +17,7 @@ MQTT_PORT = 1883
 MQTT_TOPIC = "esp32/cam/image"
 MQTT_CLIENT_ID = "esp32_cam_client"
 
-def do_connect():
-    # WiFi SSID and Password
-    wifi_ssid = "wireless"
-    wifi_password = ""
 
-    # Wireless config : Station mode
-    station = network.WLAN(network.STA_IF)
-    station.active(True)
-    if not station.isconnected():
-        # Try to connect to WiFi access point
-        print("Connecting...")
-        station.connect(wifi_ssid, wifi_password)
- 
 def init_camera():
     print("Initializing camera...")
     camera.init(0, format=camera.JPEG, fb_location=camera.PSRAM, xclk_freq=camera.XCLK_10MHz, framesize=camera.FRAME_HD)
@@ -77,25 +61,13 @@ def enable_flash(state):
     print(f"Flash LED {'ON' if state else 'OFF'}")
 
 def main():
-    do_connect()
+    wdt = WDT(timeout=60000)
     wdt.feed()
-    
     try:
         init_camera()
     except Exception as e:
         print(e)
         reset()
-
-    station = network.WLAN(network.STA_IF)
-    while not station.isconnected():
-        print("Connecting...")
-        time.sleep(1)
-    wdt.feed()
-
-    # Display connection details
-    print("Connected!")
-    print("My IP Address:", station.ifconfig()[0])
-    webrepl.start()
 
     # Connect to MQTT broker
     client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, port=MQTT_PORT)
@@ -122,8 +94,9 @@ def main():
             print(f"Picture taken, size: {len(buf)} bytes")
 
             # Publish the image
-            client.publish(MQTT_TOPIC, buf, qos=0)
-            print(f"Image published to topic: {MQTT_TOPIC}")
+            qos=1
+            client.publish(MQTT_TOPIC, buf, qos=qos)
+            print(f"Image published to topic: {MQTT_TOPIC} qos={qos}")
 
         wdt.feed()
         time.sleep(10)
@@ -133,10 +106,6 @@ def main():
     #wait before restarting
     client.disconnect()
     print("Disconnected from MQTT broker.")
-
-    #disconnect from Wi-Fi
-    station = network.WLAN(network.STA_IF)
-    station.active(False)
 
     reset()  
 
