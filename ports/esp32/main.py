@@ -4,6 +4,8 @@ import camera
 from machine import Pin, reset
 from umqtt.robust import MQTTClient
 
+__version__ = 1
+
 
 # Camera pins for ESP32-CAM (AI-Thinker module)
 # These are common pin assignments, verify with your specific board
@@ -63,6 +65,7 @@ def enable_flash(state):
 def main():
     wdt = WDT(timeout=60000)
     wdt.feed()
+    enable_flash(0)
     try:
         init_camera()
     except Exception as e:
@@ -80,7 +83,7 @@ def main():
         # Enable flash
         enable_flash(1)
         
-        print("Waiting 10 seconds before taking picture...")
+        print(f"Version {__version__}")
         time.sleep(10)
 
         wdt.feed()
@@ -90,13 +93,15 @@ def main():
         # Disable flash after taking picture
         enable_flash(0)
         wdt.feed()
-        if buf is not False:
-            print(f"Picture taken, size: {len(buf)} bytes")
 
-            # Publish the image
-            qos=1
-            client.publish(MQTT_TOPIC, buf, qos=qos)
-            print(f"Image published to topic: {MQTT_TOPIC} qos={qos}")
+        if buf is False:
+            break
+
+        print(f"Picture taken, size: {len(buf)} bytes")
+
+        # Publish the image
+        client.publish(MQTT_TOPIC, buf, qos=1)
+        print(f"Image published to topic: {MQTT_TOPIC}")
 
         wdt.feed()
         time.sleep(10)
