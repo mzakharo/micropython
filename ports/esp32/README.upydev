@@ -1,0 +1,3 @@
+upydev put main.py
+upydev reset
+upydev attach

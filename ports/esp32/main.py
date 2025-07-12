@@ -4,13 +4,14 @@ import camera
 from machine import Pin, reset
 from umqtt.robust import MQTTClient
 
-__version__ = 1
+__version__ = 2
 
 
 # Camera pins for ESP32-CAM (AI-Thinker module)
 # These are common pin assignments, verify with your specific board
 CAMERA_PINS = {
     'LED_FLASH': 4, # Flash LED pin
+    'PWDN': 32, # Flash LED pin
 }
 
 # MQTT Broker details
@@ -22,6 +23,11 @@ MQTT_CLIENT_ID = "esp32_cam_client"
 
 def init_camera():
     print("Initializing camera...")
+    pwdn = Pin(CAMERA_PINS['PWDN'], Pin.OUT)
+    pwdn.value(1)
+    time.sleep(1)
+    pwdn.value(0)
+    time.sleep(1)
     camera.init(0, format=camera.JPEG, fb_location=camera.PSRAM, xclk_freq=camera.XCLK_10MHz, framesize=camera.FRAME_HD)
 
     ## Other settings:
