@@ -44,6 +44,11 @@
 #include "modtftlcd.h"
 #endif
 
+#if MICROPY_HW_USB_CDC
+#include "shared/tinyusb/mp_usbd.h"
+#include "shared/tinyusb/mp_usbd_cdc.h"
+#endif
+
 #include "global.h"
 
 #define ENABLE_SOUND 0
@@ -389,10 +394,7 @@ static uint8_t *gb_load_rom_file(const char *filename, size_t *out_size) {
 |-----|-------|-------|--------|---|---|---|---|------|-------|-----|-------|-------|--------|-----|-----|
 */
 static void gb_update_input(struct gb_s *gb) {
-    static int old_b = 0xFFFF;
     int b = psxReadInput();
-    int chg = b ^ old_b;
-    old_b = b;
 
     uint8_t joypad = 0xFF;
 
@@ -404,13 +406,6 @@ static void gb_update_input(struct gb_s *gb) {
     if (!(b & (1 << 10))) joypad &= ~JOYPAD_B;
     if (!(b & (1 << 7)))  joypad &= ~JOYPAD_SELECT;
     if (!(b & (1 << 6)))  joypad &= ~JOYPAD_START;
-
-    // X or Y button triggers reset (matching NES emulator behavior)
-    if ((chg & (1 << 9)) && !(b & (1 << 9))) {
-        gb_reset(gb);
-    } else if ((chg & (1 << 8)) && !(b & (1 << 8))) {
-        gb_reset(gb);
-    }
 
     gb->direct.joypad = joypad;
 }
@@ -506,24 +501,51 @@ void app_gb_start(const char *filename) {
 
     const uint32_t target_speed_us = (uint32_t)(1000000.0 / VERTICAL_SYNC);
 
-    while (1) {
-        struct timeval timecheck;
-        gettimeofday(&timecheck, NULL);
-        uint32_t start_us = (uint32_t)timecheck.tv_sec * 1000000 + (uint32_t)timecheck.tv_usec;
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        while (1) {
+            struct timeval timecheck;
+            gettimeofday(&timecheck, NULL);
+            uint32_t start_us = (uint32_t)timecheck.tv_sec * 1000000 + (uint32_t)timecheck.tv_usec;
 
-        gb_update_input(s_gb);
+            #if MICROPY_HW_USB_CDC
+            mp_usbd_cdc_poll_interfaces(0);
+            #endif
+            mp_handle_pending(true);
 
-        gb_run_frame_dualfetch(s_gb);
+            gb_update_input(s_gb);
 
-        uint16_t (*fb_ptr)[LCD_WIDTH] = s_priv.fb;
-        xQueueSend(s_gb_vidQueue, &fb_ptr, 0);
+            gb_run_frame_dualfetch(s_gb);
 
-        gettimeofday(&timecheck, NULL);
-        uint32_t end_us = (uint32_t)timecheck.tv_sec * 1000000 + (uint32_t)timecheck.tv_usec;
-        int32_t delay_us = (int32_t)target_speed_us - (int32_t)(end_us - start_us);
-        if (delay_us > 1000) {
-            vTaskDelay((delay_us / 1000) / portTICK_PERIOD_MS);
+            uint16_t (*fb_ptr)[LCD_WIDTH] = s_priv.fb;
+            xQueueSend(s_gb_vidQueue, &fb_ptr, 0);
+
+            gettimeofday(&timecheck, NULL);
+            uint32_t end_us = (uint32_t)timecheck.tv_sec * 1000000 + (uint32_t)timecheck.tv_usec;
+            int32_t delay_us = (int32_t)target_speed_us - (int32_t)(end_us - start_us);
+            if (delay_us > 1000) {
+                vTaskDelay((delay_us / 1000) / portTICK_PERIOD_MS);
+            } else {
+                vTaskDelay(1);
+            }
         }
+        nlr_pop();
+    } else {
+        // Clean up allocated resources on KeyboardInterrupt (Ctrl-C) or exception
+        if (s_priv.cart_ram != NULL) {
+            heap_caps_free(s_priv.cart_ram);
+            s_priv.cart_ram = NULL;
+        }
+        if (s_priv.fb != NULL) {
+            heap_caps_free(s_priv.fb);
+            s_priv.fb = NULL;
+        }
+        if (s_priv.rom != NULL) {
+            heap_caps_free(s_priv.rom);
+            s_priv.rom = NULL;
+        }
+        MP_STATE_MEM(gc_auto_collect_enabled) = 1;
+        nlr_jump(nlr.ret_val);
     }
 }
 
