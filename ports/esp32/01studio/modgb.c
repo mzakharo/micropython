@@ -70,6 +70,8 @@ struct gb_priv_t {
     size_t rom_size;
     uint8_t *cart_ram;
     size_t save_size;
+    bool cart_ram_dirty;
+    uint32_t cart_ram_dirty_frames;
     uint16_t selected_palette[12];
     uint16_t (*fb)[LCD_WIDTH];
 };
@@ -207,9 +209,13 @@ static uint8_t gb_cart_ram_read(struct gb_s *gb, const uint_fast32_t addr) {
 }
 
 static void gb_cart_ram_write(struct gb_s *gb, const uint_fast32_t addr, const uint8_t val) {
-    const struct gb_priv_t * const p = (const struct gb_priv_t *)gb->direct.priv;
+    struct gb_priv_t * const p = (struct gb_priv_t *)gb->direct.priv;
     if (p->cart_ram && addr < p->save_size) {
-        p->cart_ram[addr] = val;
+        if (p->cart_ram[addr] != val) {
+            p->cart_ram[addr] = val;
+            p->cart_ram_dirty = true;
+            p->cart_ram_dirty_frames = 0;
+        }
     }
 }
 
@@ -335,6 +341,30 @@ static void gb_load_sram(const char *rom_filename, struct gb_priv_t *priv) {
         nlr_pop();
     } else {
         // Ignore error if save file cannot be read
+    }
+}
+
+static void gb_save_sram(const char *rom_filename, struct gb_priv_t *priv) {
+    if (!priv->cart_ram_dirty || priv->save_size == 0 || priv->cart_ram == NULL) {
+        return;
+    }
+    char save_fn[256];
+    gb_make_save_filename(rom_filename, save_fn, sizeof(save_fn));
+
+    nlr_buf_t nlr;
+    if (nlr_push(&nlr) == 0) {
+        mp_obj_t args[2] = {
+            mp_obj_new_str(save_fn, strlen(save_fn)),
+            MP_OBJ_NEW_QSTR(MP_QSTR_wb),
+        };
+        mp_obj_t fp = mp_vfs_open(MP_ARRAY_SIZE(args), &args[0], (mp_map_t *)&mp_const_empty_map);
+        mp_stream_posix_write(fp, priv->cart_ram, priv->save_size);
+        mp_stream_close(fp);
+        priv->cart_ram_dirty = false;
+        priv->cart_ram_dirty_frames = 0;
+        nlr_pop();
+    } else {
+        // Ignore error if save file cannot be written
     }
 }
 
@@ -515,7 +545,15 @@ void app_gb_start(const char *filename) {
 
             gb_update_input(s_gb);
 
+            uint8_t prev_enable_ram = s_gb->enable_cart_ram;
             gb_run_frame_dualfetch(s_gb);
+
+            if (s_priv.cart_ram_dirty) {
+                s_priv.cart_ram_dirty_frames++;
+                if ((prev_enable_ram && !s_gb->enable_cart_ram) || s_priv.cart_ram_dirty_frames >= 60) {
+                    gb_save_sram(filename, &s_priv);
+                }
+            }
 
             uint16_t (*fb_ptr)[LCD_WIDTH] = s_priv.fb;
             xQueueSend(s_gb_vidQueue, &fb_ptr, 0);
@@ -531,7 +569,8 @@ void app_gb_start(const char *filename) {
         }
         nlr_pop();
     } else {
-        // Clean up allocated resources on KeyboardInterrupt (Ctrl-C) or exception
+        // Flush any pending SRAM writes and clean up allocated resources on exit
+        gb_save_sram(filename, &s_priv);
         if (s_priv.cart_ram != NULL) {
             heap_caps_free(s_priv.cart_ram);
             s_priv.cart_ram = NULL;
