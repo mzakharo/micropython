@@ -104,3 +104,6 @@
 [submodule "lib/psoc-edge/async-transfer"]
 	path = lib/psoc-edge/async-transfer
 	url = https://github.com/Infineon/async-transfer.git
+[submodule "ports/esp32/Walnut-CGB"]
+	path = ports/esp32/Walnut-CGB
+	url = https://github.com/Mr-PauI/Walnut-CGB.git

@@ -83,7 +83,9 @@ void machine_pins_init(void) {
 void machine_pins_deinit(void) {
     for (int i = 0; i < MP_ARRAY_SIZE(machine_pin_obj_table); ++i) {
         if (machine_pin_obj_table[i].base.type != NULL) {
+#if 0
             if(i == MICROPY_MPU_PIN_IRQ) continue;
+#endif
             gpio_isr_handler_remove(i);
         }
     }

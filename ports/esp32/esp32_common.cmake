@@ -114,6 +114,13 @@ if(MICROPY_PORT_NESEMU STREQUAL "y")
     )
 endif()
 
+# gb
+if(MICROPY_PORT_GBEMU STREQUAL "y")
+    list(APPEND CUSTOM_INC_DIRS
+        ${MICROPY_PORT_DIR}/Walnut-CGB
+    )
+endif()
+
 # cam
 idf_build_get_property(CAMLIB CAMLIB)
 if("${CAMLIB}" STREQUAL "y")
@@ -500,6 +507,7 @@ target_compile_options(${MICROPY_TARGET} PUBLIC
     -Wno-clobbered
     -Wno-deprecated-declarations
     -Wno-missing-field-initializers
+    -Wno-stringop-truncation
 )
 
 # User C modules don't pick up certain compile options set by the IDF, most

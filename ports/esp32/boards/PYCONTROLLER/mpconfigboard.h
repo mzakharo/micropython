@@ -28,6 +28,7 @@
 
 #define MICROPY_ENABLE_GAME				(1)
 #define MICROPY_HW_NESEMU				(1)
+#define MICROPY_HW_GBEMU				(1)
 #define MICROPY_ENABLE_PSXCONTROLLER	(1)
 
 #define PSX_GPIO_UP						(10)

@@ -24,6 +24,9 @@
 #if MICROPY_HW_NESEMU
 #include "modnes.h" 
 #endif
+#if MICROPY_HW_GBEMU
+#include "modgb.h"
+#endif
 
 #if MICROPY_ENABLE_GAME
 
@@ -32,6 +35,11 @@ STATIC const mp_rom_map_elem_t game_module_globals_table[] = {
 
 	#if MICROPY_HW_NESEMU
 	{ MP_ROM_QSTR(MP_QSTR_NES), MP_ROM_PTR(&game_nesemu_type) },
+	#endif
+	#if MICROPY_HW_GBEMU
+	{ MP_ROM_QSTR(MP_QSTR_GB), MP_ROM_PTR(&game_gbemu_type) },
+	{ MP_ROM_QSTR(MP_QSTR_GBC), MP_ROM_PTR(&game_gbemu_type) },
+	{ MP_ROM_QSTR(MP_QSTR_CGB), MP_ROM_PTR(&game_gbemu_type) },
 	#endif
 };
 STATIC MP_DEFINE_CONST_DICT(game_module_globals, game_module_globals_table);
